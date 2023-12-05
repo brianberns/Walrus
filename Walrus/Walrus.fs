@@ -124,21 +124,24 @@ module Table =
         let headers = reader.Headers
         let colTypes = inferTypes headers.Length lines
         let columns =
-            Seq.zip headers colTypes
-                |> Seq.indexed
-                |> Seq.groupBy (fun (_, (_, colType)) -> colType)
-                |> Seq.collect (fun (_, group) ->
-                    group
-                        |> Seq.mapi (fun idx (iCol, (colName, colType)) ->
-                            let col =
-                                {
-                                    Name = colName
-                                    Type = colType
-                                    Index = idx
-                                }
-                            col, iCol))
-                |> Seq.sortBy snd
-                |> Seq.map fst
+            ((0, 0, 0), Seq.zip headers colTypes)
+                ||> Seq.mapFold (fun (iFloat, iInt, iStr) (colName, colType) ->
+                    let acc, idx =
+                        match colType with
+                            | ColumnType.Float ->
+                                (iFloat + 1, iInt, iStr), iFloat
+                            | ColumnType.Integer ->
+                                (iFloat, iInt + 1, iStr), iInt
+                            | ColumnType.String ->
+                                (iFloat, iInt, iStr + 1), iStr
+                    let column =
+                        {
+                            Name = colName
+                            Type = colType
+                            Index = idx
+                        }
+                    column, acc)
+                |> fst
                 |> Seq.toArray
         let rows =
             [|
