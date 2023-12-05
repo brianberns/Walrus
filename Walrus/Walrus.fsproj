@@ -6,7 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Walrus.fs" />
+    <Compile Include="Prelude.fs" />
+    <Compile Include="Column.fs" />
+    <Compile Include="Row.fs" />
+    <Compile Include="Table.fs" />
   </ItemGroup>
 
   <ItemGroup>
