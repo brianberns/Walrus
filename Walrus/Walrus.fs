@@ -29,9 +29,21 @@ module private SQLite =
     let createCommand commandText =
         new SQLiteCommand(commandText, connection)
 
-type Table =
+    let createParameter dbType (cmd : SQLiteCommand) =
+        let param = new SQLiteParameter(dbType : DbType)
+        cmd.Parameters.Add(param) |> ignore
+        param
+
+type Column =
     {
         Name : string
+        Type : DbType
+    }
+
+type Table =
+    {
+        Sql : string
+        Columns : Column[]
     }
 
 module Table =
@@ -78,26 +90,77 @@ module Table =
 
     let readCsv path =
 
-        use reader = new StreamReader(path : string)
-        use reader = new CSVReader(reader)
-
         let tableName = $"table{nTables}"
-        use cmd =
-            let sql =
-                let colDefs =
-                    let colTypes =
-                        inferTypes
-                            reader.Headers.Length
-                            (reader.Lines())
-                    Seq.zip reader.Headers colTypes
-                        |> Seq.map (fun (colName, colType) ->
-                            $"{colName} {dataTypeMap[colType]}")
-                        |> String.concat ", "
-                $"create table {tableName} ({colDefs})"
-            SQLite.createCommand sql
-        cmd.ExecuteNonQuery() |> ignore
-        lock dataTypeMap
-            (fun () ->
-                nTables <- nTables + 1)
 
-        { Name = tableName }
+        let headers, lines =
+            use reader = new StreamReader(path : string)
+            use reader = new CSVReader(reader)
+            let lines =
+                reader.Lines() |> Seq.toArray
+            reader.Headers, lines
+
+        let columns =
+            let colTypes = inferTypes headers.Length lines
+            use cmd =
+                let sql =
+                    let colDefs =
+                        Seq.zip headers colTypes
+                            |> Seq.map (fun (colName, colType) ->
+                                $"[{colName}] {dataTypeMap[colType]}")
+                            |> String.concat ", "
+                    $"create table [{tableName}] ({colDefs})"
+                SQLite.createCommand sql
+            cmd.ExecuteNonQuery() |> ignore
+            lock dataTypeMap
+                (fun () ->
+                    nTables <- nTables + 1)
+            Array.zip headers colTypes
+                |> Array.map (fun (colName, colType) ->
+                    { Name = colName; Type = colType })
+
+        use trans = SQLite.connection.BeginTransaction()
+        use cmd =
+            let colNamesStr =
+                columns
+                    |> Seq.map (fun col -> $"[{col.Name}]")
+                    |> String.concat ", "
+            let paramsStr =
+                Seq.replicate columns.Length "?"
+                    |> String.concat ", "
+            SQLite.createCommand $"insert into [{tableName}] ({colNamesStr}) values ({paramsStr})"
+        let parms =
+            columns
+                |> Array.mapi (fun iCol col ->
+                    SQLite.createParameter col.Type cmd)
+        for line in lines do
+            Array.zip parms line
+                |> Array.iter (fun (param, value) ->
+                    param.Value <-
+                        if String.IsNullOrEmpty value then
+                            box DBNull.Value
+                        else value)
+            let nRows = cmd.ExecuteNonQuery()
+            assert(nRows = 1)
+        trans.Commit()
+
+        {
+            Sql = $"select * from {tableName}"
+            Columns = columns
+        }
+
+    let print table =
+
+        for col in table.Columns do
+            printf $" | {col.Name}"
+        printfn " |"
+
+        for col in table.Columns do
+            printf $" | {String('-', col.Name.Length)}"
+        printfn " |"
+
+        use cmd = SQLite.createCommand table.Sql
+        use rdr = cmd.ExecuteReader()
+        while rdr.Read() do
+            for iCol = 0 to rdr.FieldCount - 1 do
+                printf $" | {rdr.GetValue(iCol)}"
+            printfn " |"
