@@ -7,10 +7,12 @@ type Row =
 
 module Row =
 
-    let ofValues values =
-        { Values = values }
+    let ofValues boxedValues =
+        {
+            Values = Seq.toArray boxedValues
+        }
 
-    let getValue<'t> column row =
-        let value = row.Values[column.Index]
+    let getValue<'t> iCol row =
+        let value = row.Values[iCol]
         if isNull value then None
         else Some (value :?> 't)

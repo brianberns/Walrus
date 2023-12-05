@@ -7,13 +7,18 @@ open CSVFile
 
 module Csv =
 
+    type private ColumnType =
+        | Float
+        | Integer
+        | String
+
     let private inferTypes nCols lines =
 
         let parserMap =
             Map [
-                ColumnType.Float, (fun str ->
+                Float, (fun str ->
                     Double.TryParse(str : string) |> fst)
-                ColumnType.Integer, (fun str ->
+                Integer, (fun str ->
                     Int32.TryParse(str : string) |> fst)
             ]
 
@@ -33,53 +38,37 @@ module Csv =
             |> Seq.map (fun colTypes ->
                 Seq.tryExactlyOne colTypes
                     |> Option.defaultWith (fun () ->
-                        if colTypes.Contains(ColumnType.Integer) then
-                            assert(colTypes.Contains(ColumnType.Float))
-                            ColumnType.Integer
-                        else ColumnType.String))
+                        if colTypes.Contains(Integer) then
+                            assert(colTypes.Contains(Float))
+                            Integer
+                        else String))
             |> Seq.toArray
 
     let private createRow columnTypes strings =
         Array.zip columnTypes strings
             |> Array.map (fun (colType, str) ->
                 match colType with
-                    | ColumnType.Float ->
+                    | Float ->
                         if String.IsNullOrEmpty(str) then null
                         else Double.Parse(str) |> box
-                    | ColumnType.Integer ->
+                    | Integer ->
                         if String.IsNullOrEmpty(str) then null
                         else Int32.Parse(str) |> box
-                    | ColumnType.String -> box str)
+                    | String -> box str)
             |> Row.ofValues
 
     let loadTable path =
-        use reader = new StreamReader(path : string)
-        use reader = new CSVReader(reader)
-        let lines = reader.Lines() |> Seq.toArray
-        let headers = reader.Headers
+
+        let headers, lines =
+            use reader = new StreamReader(path : string)
+            use reader = new CSVReader(reader)
+            let lines = reader.Lines() |> Seq.toArray
+            reader.Headers, lines
+
         let colTypes = inferTypes headers.Length lines
-        let columns =
-            ((0, 0, 0), Array.zip headers colTypes)
-                ||> Array.mapFold (fun (iFloat, iInt, iStr) (colName, colType) ->
-                    let acc, idx =
-                        match colType with
-                            | ColumnType.Float ->
-                                (iFloat + 1, iInt, iStr), iFloat
-                            | ColumnType.Integer ->
-                                (iFloat, iInt + 1, iStr), iInt
-                            | ColumnType.String ->
-                                (iFloat, iInt, iStr + 1), iStr
-                    let column =
-                        {
-                            Name = colName
-                            Type = colType
-                            Index = idx
-                        }
-                    column, acc)
-                |> fst
         let rows =
             [|
                 for line in lines do
                     createRow colTypes line
             |]
-        Table.create rows columns
+        Table.create headers rows

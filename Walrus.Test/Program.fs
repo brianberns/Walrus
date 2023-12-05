@@ -4,16 +4,11 @@ open Walrus
 
 module Program =
 
-    let getPClass = Table.getValue "PClass" Row.getValue<int>
-    let getSurvived = Table.getValue "Survived" Row.getValue<int>
-    let getPassengerId = Table.getValue "PassengerId" Row.getValue<int>
-
     Csv.loadTable @"C:\Users\brian\Downloads\train.csv"
-        (*
         |> Table.pivot
-            getPClass
-            getSurvived
-            getPassengerId
+            (col<int> "Pclass")
+            (col<int> "Survived")
+            (col<int> "PassengerId")
             Seq.length
-        *)
         |> Table.print
+        // |> printfn "%A"

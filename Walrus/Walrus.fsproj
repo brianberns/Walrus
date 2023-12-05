@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <Compile Include="Prelude.fs" />
-    <Compile Include="Column.fs" />
     <Compile Include="Row.fs" />
     <Compile Include="Table.fs" />
     <Compile Include="Csv.fs" />
