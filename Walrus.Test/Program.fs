@@ -8,7 +8,7 @@ module Program =
     let getSurvived = Table.getValue "Survived" Row.getValue<int>
     let getPassengerId = Table.getValue "PassengerId" Row.getValue<int>
 
-    Table.readCsv @"C:\Users\brian\Downloads\train.csv"
+    Csv.loadTable @"C:\Users\brian\Downloads\train.csv"
         (*
         |> Table.pivot
             getPClass

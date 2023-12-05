@@ -1,9 +1,6 @@
 ﻿namespace Walrus
 
 open System
-open System.IO
-
-open CSVFile
 
 type Table =
     {
@@ -23,69 +20,6 @@ module Table =
                     |> Seq.map (fun col -> col.Name, col)   // to-do: handle duplicate column names?
                     |> Map
         }
-
-    let private parserMap =
-        Map [
-            ColumnType.Float, (fun str ->
-                Double.TryParse(str : string) |> fst)
-            ColumnType.Integer, (fun str ->
-                Int32.TryParse(str : string) |> fst)
-        ]
-
-    let private inferTypes nCols lines =
-
-        let colTypeSets =
-            Array.replicate nCols (set parserMap.Keys)
-        (colTypeSets, lines)
-            ||> Seq.fold (fun acc (line : string[]) ->
-                [|
-                    for iCol = 0 to nCols - 1 do
-                        acc[iCol]
-                            |> Set.filter (fun colType ->
-                                let str = line[iCol]
-                                String.IsNullOrEmpty(str)
-                                    || parserMap[colType] str)
-                |])
-            |> Seq.map (fun colTypes ->
-                Seq.tryExactlyOne colTypes
-                    |> Option.defaultWith (fun () ->
-                        if colTypes.Contains(ColumnType.Integer) then
-                            assert(colTypes.Contains(ColumnType.Float))
-                            ColumnType.Integer
-                        else ColumnType.String))
-            |> Seq.toArray
-
-    let readCsv path =
-        use reader = new StreamReader(path : string)
-        use reader = new CSVReader(reader)
-        let lines = reader.Lines() |> Seq.toArray
-        let headers = reader.Headers
-        let colTypes = inferTypes headers.Length lines
-        let columns =
-            ((0, 0, 0), Array.zip headers colTypes)
-                ||> Array.mapFold (fun (iFloat, iInt, iStr) (colName, colType) ->
-                    let acc, idx =
-                        match colType with
-                            | ColumnType.Float ->
-                                (iFloat + 1, iInt, iStr), iFloat
-                            | ColumnType.Integer ->
-                                (iFloat, iInt + 1, iStr), iInt
-                            | ColumnType.String ->
-                                (iFloat, iInt, iStr + 1), iStr
-                    let column =
-                        {
-                            Name = colName
-                            Type = colType
-                            Index = idx
-                        }
-                    column, acc)
-                |> fst
-        let rows =
-            [|
-                for line in lines do
-                    Row.ofStrings colTypes line
-            |]
-        create rows columns
 
     let getValue colName getter table =
         getter table.ColumnMap[colName]
