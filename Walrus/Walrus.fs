@@ -2,8 +2,6 @@
 
 open System
 open System.IO
-open System.Data
-open System.Data.SQLite
 
 open CSVFile
 
@@ -19,40 +17,80 @@ module Seq =
             Some maxItem
         else None
 
-module private SQLite =
-
-    let connection =
-        let conn = new SQLiteConnection("Data Source=:memory:")
-        conn.Open()
-        conn
-
-    let createCommand commandText =
-        new SQLiteCommand(commandText, connection)
-
-    let createParameter dbType (cmd : SQLiteCommand) =
-        let param = new SQLiteParameter(dbType : DbType)
-        cmd.Parameters.Add(param) |> ignore
-        param
+[<RequireQualifiedAccess>]
+type ColumnType =
+    | Float
+    | Integer
+    | String
 
 type Column =
     {
         Name : string
-        Type : DbType
+        Type : ColumnType
+        Index : int
     }
+
+type Row =
+    {
+        FloatValues : Option<float>[]
+        IntegerValues : Option<int64>[]
+        StringValues : Option<string>[]
+    }
+
+module Row =
+
+    let ofValues columns values =
+        let pairs = Array.zip columns values
+        let floatVals, intVals, strVals =
+            (pairs, ([], [], []))
+                ||> Seq.foldBack (fun (col, str) (floatVals, intVals, strVals) ->
+                    match col with
+                        | ColumnType.Float ->
+                            let valOpt =
+                                if String.IsNullOrEmpty(str) then None
+                                else Double.Parse(str) |> Some
+                            valOpt :: floatVals, intVals, strVals
+                        | ColumnType.Integer ->
+                            let valOpt =
+                                if String.IsNullOrEmpty(str) then None
+                                else Int64.Parse(str) |> Some
+                            floatVals, valOpt :: intVals, strVals
+                        | ColumnType.String ->
+                            let valOpt =
+                                if isNull str then None
+                                else Some str
+                            floatVals, intVals, valOpt :: strVals)
+        {
+            FloatValues = Seq.toArray floatVals
+            IntegerValues = Seq.toArray intVals
+            StringValues = Seq.toArray strVals
+        }
+
+    let getValue column row =
+        match column.Type with
+            | ColumnType.Float ->
+                row.FloatValues[column.Index]
+                    |> Option.map box
+            | ColumnType.Integer ->
+                row.IntegerValues[column.Index]
+                    |> Option.map box
+            | ColumnType.String ->
+                row.StringValues[column.Index]
+                    |> Option.map box
 
 type Table =
     {
-        Sql : string
         Columns : Column[]
+        Rows : Row[]
     }
 
 module Table =
 
     let private parserMap =
         Map [
-            DbType.Double, (fun str ->
+            ColumnType.Float, (fun str ->
                 Double.TryParse(str : string) |> fst)
-            DbType.Int64, (fun str ->
+            ColumnType.Integer, (fun str ->
                 Int64.TryParse(str : string) |> fst)
         ]
 
@@ -73,79 +111,38 @@ module Table =
             |> Seq.map (fun dbTypes ->
                 Seq.tryExactlyOne dbTypes
                     |> Option.defaultWith (fun () ->
-                        if dbTypes.Contains(DbType.Int64) then
-                            assert(dbTypes.Contains(DbType.Double))
-                            DbType.Int64
-                        else DbType.String))
+                        if dbTypes.Contains(ColumnType.Integer) then
+                            assert(dbTypes.Contains(ColumnType.Float))
+                            ColumnType.Integer
+                        else ColumnType.String))
             |> Seq.toArray
 
-    let private dataTypeMap =
-        Map [
-            DbType.Double, "real"
-            DbType.Int64, "integer"
-            DbType.String, "text"
-        ]
-
-    let mutable private nTables = 0
-
     let readCsv path =
-
-        let tableName = $"table{nTables}"
-
-        let headers, lines =
-            use reader = new StreamReader(path : string)
-            use reader = new CSVReader(reader)
-            let lines =
-                reader.Lines() |> Seq.toArray
-            reader.Headers, lines
-
+        use reader = new StreamReader(path : string)
+        use reader = new CSVReader(reader)
+        let lines = reader.Lines() |> Seq.toArray
+        let headers = reader.Headers
+        let colTypes = inferTypes headers.Length lines
         let columns =
-            let colTypes = inferTypes headers.Length lines
-            use cmd =
-                let sql =
-                    let colDefs =
-                        Seq.zip headers colTypes
-                            |> Seq.map (fun (colName, colType) ->
-                                $"[{colName}] {dataTypeMap[colType]}")
-                            |> String.concat ", "
-                    $"create table [{tableName}] ({colDefs})"
-                SQLite.createCommand sql
-            cmd.ExecuteNonQuery() |> ignore
-            lock dataTypeMap
-                (fun () ->
-                    nTables <- nTables + 1)
-            Array.zip headers colTypes
-                |> Array.map (fun (colName, colType) ->
-                    { Name = colName; Type = colType })
-
-        use trans = SQLite.connection.BeginTransaction()
-        use cmd =
-            let colNamesStr =
-                columns
-                    |> Seq.map (fun col -> $"[{col.Name}]")
-                    |> String.concat ", "
-            let paramsStr =
-                Seq.replicate columns.Length "?"
-                    |> String.concat ", "
-            SQLite.createCommand $"insert into [{tableName}] ({colNamesStr}) values ({paramsStr})"
-        let parms =
-            columns
-                |> Array.mapi (fun iCol col ->
-                    SQLite.createParameter col.Type cmd)
-        for line in lines do
-            Array.zip parms line
-                |> Array.iter (fun (param, value) ->
-                    param.Value <-
-                        if String.IsNullOrEmpty value then
-                            box DBNull.Value
-                        else value)
-            let nRows = cmd.ExecuteNonQuery()
-            assert(nRows = 1)
-        trans.Commit()
-
+            Seq.zip headers colTypes
+                |> Seq.groupBy snd
+                |> Seq.collect (fun (colType, group) ->
+                    group
+                        |> Seq.mapi (fun iCol (colName, _) ->
+                            {
+                                Name = colName
+                                Type = colType
+                                Index = iCol
+                            }))
+                |> Seq.toArray
+        let rows =
+            [|
+                for line in lines do
+                    Row.ofValues colTypes line
+            |]
         {
-            Sql = $"select * from {tableName}"
             Columns = columns
+            Rows = rows
         }
 
     let print table =
@@ -158,9 +155,12 @@ module Table =
             printf $" | {String('-', col.Name.Length)}"
         printfn " |"
 
-        use cmd = SQLite.createCommand table.Sql
-        use rdr = cmd.ExecuteReader()
-        while rdr.Read() do
-            for iCol = 0 to rdr.FieldCount - 1 do
-                printf $" | {rdr.GetValue(iCol)}"
+        for row in table.Rows do
+            for col in table.Columns do
+                let strVal =
+                    row
+                        |> Row.getValue col
+                        |> Option.map string
+                        |> Option.defaultValue ""
+                printf $" | {strVal}"
             printfn " |"
