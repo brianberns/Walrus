@@ -125,15 +125,20 @@ module Table =
         let colTypes = inferTypes headers.Length lines
         let columns =
             Seq.zip headers colTypes
-                |> Seq.groupBy snd
-                |> Seq.collect (fun (colType, group) ->
+                |> Seq.indexed
+                |> Seq.groupBy (fun (_, (_, colType)) -> colType)
+                |> Seq.collect (fun (_, group) ->
                     group
-                        |> Seq.mapi (fun iCol (colName, _) ->
-                            {
-                                Name = colName
-                                Type = colType
-                                Index = iCol
-                            }))
+                        |> Seq.mapi (fun idx (iCol, (colName, colType)) ->
+                            let col =
+                                {
+                                    Name = colName
+                                    Type = colType
+                                    Index = idx
+                                }
+                            col, iCol))
+                |> Seq.sortBy snd
+                |> Seq.map fst
                 |> Seq.toArray
         let rows =
             [|
@@ -149,6 +154,10 @@ module Table =
 
         for col in table.Columns do
             printf $" | {col.Name}"
+        printfn " |"
+
+        for col in table.Columns do
+            printf $" | {col.Type}"
         printfn " |"
 
         for col in table.Columns do
