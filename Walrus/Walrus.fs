@@ -19,9 +19,20 @@ module Seq =
             Some maxItem
         else None
 
-module private Sqlite =
+module private SQLite =
 
-    let conn = new SQLiteConnection("Data Source=:memory:")
+    let connection =
+        let conn = new SQLiteConnection("Data Source=:memory:")
+        conn.Open()
+        conn
+
+    let createCommand commandText =
+        new SQLiteCommand(commandText, connection)
+
+type Table =
+    {
+        Name : string
+    }
 
 module Table =
 
@@ -56,8 +67,37 @@ module Table =
                         else DbType.String))
             |> Seq.toArray
 
+    let private dataTypeMap =
+        Map [
+            DbType.Double, "real"
+            DbType.Int64, "integer"
+            DbType.String, "text"
+        ]
+
+    let mutable private nTables = 0
+
     let readCsv path =
+
         use reader = new StreamReader(path : string)
         use reader = new CSVReader(reader)
-        let nCols = reader.Headers.Length
-        inferTypes nCols (reader.Lines())
+
+        let tableName = $"table{nTables}"
+        use cmd =
+            let sql =
+                let colDefs =
+                    let colTypes =
+                        inferTypes
+                            reader.Headers.Length
+                            (reader.Lines())
+                    Seq.zip reader.Headers colTypes
+                        |> Seq.map (fun (colName, colType) ->
+                            $"{colName} {dataTypeMap[colType]}")
+                        |> String.concat ", "
+                $"create table {tableName} ({colDefs})"
+            SQLite.createCommand sql
+        cmd.ExecuteNonQuery() |> ignore
+        lock dataTypeMap
+            (fun () ->
+                nTables <- nTables + 1)
+
+        { Name = tableName }
