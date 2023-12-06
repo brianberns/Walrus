@@ -2,20 +2,6 @@
 
 open System
 
-/// Typed column in a table.
-type Column<'t> =
-    {
-        Name : string
-    }
-
-[<AutoOpen>]
-module Column =
-
-    let col<'t> name : Column<'t> =
-        {
-            Name = name
-        }
-
 type Table =
     private {
 
@@ -52,30 +38,25 @@ module Table =
         }
 
     /// Creates a pivot table.
-    let pivot
-        (rowCol : Column<'row>)
-        (colCol : Column<'col>)
-        (dataCol : Column<'data>)
-        (aggregate : seq<Option<'data>> -> 'agg)
-        table =
+    let pivot<'inp, 'out> rowCol colCol dataCol aggregate table =
 
-        let iRowCol = table.ColumnMap[rowCol.Name]
-        let iColCol = table.ColumnMap[colCol.Name]
-        let iDataCol = table.ColumnMap[dataCol.Name]
+        let iRowCol = table.ColumnMap[rowCol]
+        let iColCol = table.ColumnMap[colCol]
+        let iDataCol = table.ColumnMap[dataCol]
 
             // find distinct row values
         let rowMapPairs =
             table.Rows
-                |> Seq.groupBy (Row.tryGetValue<'row> iRowCol)
+                |> Seq.groupBy (Row.tryGetValue iRowCol)
                 |> Seq.map (fun (rowVal, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                Row.tryGetValue<'col> iColCol row,
-                                Row.tryGetValue<'data> iDataCol row)
+                                Row.tryGetValue iColCol row,
+                                Row.tryGetValue<'inp> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
-                                let aggVal =
+                                let aggVal : 'out =
                                     pairs
                                         |> Seq.map snd
                                         |> aggregate
@@ -95,7 +76,7 @@ module Table =
             // create table
         let columnNames =
             [|
-                rowCol.Name
+                rowCol
                 for colVal in colVals do
                     string colVal
             |]
