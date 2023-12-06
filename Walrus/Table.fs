@@ -58,12 +58,20 @@ module Table =
                 |> Array.sortBy (Row.getValue<'t> iCol)
         { table with Rows = rows }
 
-    let getValues<'t> columnName table =
+    let getValue<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        Row.getValue<'t> iCol
+
+    let tryGetValue<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        Row.tryGetValue<'t> iCol
+
+    let getColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
         table.Rows
             |> Seq.map (Row.getValue<'t> iCol)
 
-    let tryGetValues<'t> columnName table =
+    let tryGetColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
         table.Rows
             |> Seq.map (Row.tryGetValue<'t> iCol)
@@ -111,7 +119,7 @@ module Table =
                 |> Seq.toArray
 
             // create table
-        let columnNames =
+        let colNames =
             [|
                 rowCol.Name
                 for colVal in colVals do
@@ -128,7 +136,22 @@ module Table =
                                 |> Option.box
                     } |> Row.create)
                 |> Seq.toArray
-        create columnNames rows
+        create colNames rows
+
+    let mapRows mappings table =
+        let colNames : string[] =
+            Seq.map fst mappings
+                |> Seq.toArray
+        let rows =
+            table.Rows
+                |> Array.map (fun row ->
+                    let values =
+                        mappings
+                            |> Seq.map (fun (_, mapping) ->
+                                mapping table row
+                                    |> box)
+                    Row.create values)
+        create colNames rows
 
     let print table =
 
@@ -138,7 +161,7 @@ module Table =
                     let strs =
                         seq {
                             name
-                            for value in getValues<obj> name table do
+                            for value in getColumn<obj> name table do
                                 string value
                         }
                     strs
