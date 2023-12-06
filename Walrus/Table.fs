@@ -2,6 +2,20 @@
 
 open System
 
+/// Typed column in a table.
+type Column<'t> =
+    {
+        Name : string
+    }
+
+[<AutoOpen>]
+module Column =
+
+    let col<'t> name : Column<'t> =
+        {
+            Name = name
+        }
+
 type Table =
     private {
 
@@ -55,25 +69,30 @@ module Table =
             |> Seq.map (Row.tryGetValue<'t> iCol)
 
     /// Creates a pivot table.
-    let pivot<'inp, 'out> rowCol colCol dataCol aggregate table =
+    let pivot
+        (rowCol : Column<'row>)
+        (colCol : Column<'col>)
+        (dataCol : Column<'data>)
+        (aggregate : seq<Option<'data>> -> 'agg)
+        table =
 
-        let iRowCol = table.ColumnMap[rowCol]
-        let iColCol = table.ColumnMap[colCol]
-        let iDataCol = table.ColumnMap[dataCol]
+        let iRowCol = table.ColumnMap[rowCol.Name]
+        let iColCol = table.ColumnMap[colCol.Name]
+        let iDataCol = table.ColumnMap[dataCol.Name]
 
             // find distinct row values
         let rowMapPairs =
             table.Rows
-                |> Seq.groupBy (Row.tryGetValue iRowCol)
+                |> Seq.groupBy (Row.tryGetValue<'row> iRowCol)
                 |> Seq.map (fun (rowVal, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                Row.tryGetValue iColCol row,
-                                Row.tryGetValue<'inp> iDataCol row)
+                                Row.tryGetValue<'col> iColCol row,
+                                Row.tryGetValue<'data> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
-                                let aggVal : 'out =
+                                let aggVal : 'agg =
                                     pairs
                                         |> Seq.map snd
                                         |> aggregate
@@ -93,7 +112,7 @@ module Table =
             // create table
         let columnNames =
             [|
-                rowCol
+                rowCol.Name
                 for colVal in colVals do
                     string colVal
             |]
