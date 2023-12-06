@@ -2,6 +2,7 @@
 
 open System
 
+/// Typed column in a table.
 type Column<'t> =
     {
         Name : string
@@ -16,107 +17,141 @@ module Column =
         }
 
 type Table =
-    {
+    private {
+
+        /// Names of this table's columns, in order.
         ColumnNames : string[]
-        ColumnMap : Map<string, int>
+
+        /// Column indexes.
+        ColumnMap : Map<string, int (*iCol*)>
+
+        /// Rows in this table.
         Rows : Row[]
     }
 
+module Option =
+
+    /// Boxes the contained value.
+    let box opt =
+        opt
+            |> Option.map box
+            |> Option.defaultValue null
+
 module Table =
 
+    /// Creates a table.
     let create columnNames rows =
         {
             ColumnNames = columnNames
             ColumnMap =
                 columnNames
                     |> Seq.mapi (fun iCol name ->
-                        name, iCol)   // to-do: handle duplicate column names?
-                    |> Map
+                        name, iCol)
+                    |> Map   // to-do: handle duplicate column names?
             Rows = rows
         }
 
-    let getValue colName getter table =
-        getter table.ColumnMap[colName]
-
+    /// Creates a pivot table.
     let pivot
         (rowCol : Column<'row>)
         (colCol : Column<'col>)
         (dataCol : Column<'data>)
-        (mapping : seq<Option<'data>> -> 'agg) table =
+        (aggregate : seq<Option<'data>> -> 'agg)
+        table =
+
         let iRowCol = table.ColumnMap[rowCol.Name]
         let iColCol = table.ColumnMap[colCol.Name]
         let iDataCol = table.ColumnMap[dataCol.Name]
-        let pairs =
+
+            // find distinct row values
+        let rowMapPairs =
             table.Rows
-                |> Seq.groupBy (Row.getValue<'row> iRowCol)
+                |> Seq.groupBy (Row.tryGetValue<'row> iRowCol)
                 |> Seq.map (fun (rowVal, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                Row.getValue<'col> iColCol row,
-                                Row.getValue<'data> iDataCol row)
+                                Row.tryGetValue<'col> iColCol row,
+                                Row.tryGetValue<'data> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
                                 let aggVal =
                                     pairs
                                         |> Seq.map snd
-                                        |> mapping
+                                        |> aggregate
                                 colVal, aggVal)
                             |> Map
-                    (*
-                    let rows =
-                        triples
-                            |> Seq.groupBy (fun (rowVal, _, _) ->
-                                rowVal)
-                            |> Seq.map (fun (rowVal, group) ->)
-                    *)
                     rowVal, colAggMap)
+
+            // find distinct column values
         let colVals =
-            pairs
+            rowMapPairs
                 |> Seq.collect (fun (_, colAggMap) ->
                     colAggMap.Keys)
                 |> Seq.distinct
                 |> Seq.sort
                 |> Seq.toArray
+
+            // create table
         let columnNames =
             [|
                 rowCol.Name
                 for colVal in colVals do
                     string colVal
             |]
-        let boxed opt =
-            opt
-                |> Option.map box
-                |> Option.defaultValue null
         let rows =
-            pairs
+            rowMapPairs
                 |> Seq.map (fun (rowVal, colAggMap) ->
                     seq {
-                        boxed rowVal
+                        Option.box rowVal
                         for colVal in colVals do
                             colAggMap
                                 |> Map.tryFind colVal
-                                |> boxed
-                    } |> Row.ofValues)
+                                |> Option.box
+                    } |> Row.create)
                 |> Seq.toArray
         create columnNames rows
 
+    let getValues<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.Rows
+            |> Seq.map (Row.getValue<'t> iCol)
+
+    let tryGetValues<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.Rows
+            |> Seq.map (Row.tryGetValue<'t> iCol)
+
     let print table =
 
-        for name in table.ColumnNames do
-            printf $" | {name}"
+        let widths =
+            [|
+                for name in table.ColumnNames do
+                    let strs =
+                        seq {
+                            name
+                            for value in getValues<obj> name table do
+                                string value
+                        }
+                    strs
+                        |> Seq.map String.length
+                        |> Seq.max
+            |]
+
+        for name, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width name
         printfn " |"
 
-        for name in table.ColumnNames do
-            printf $" | {String('-', name.Length)}"
+        for name, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width (String('-', name.Length))
         printfn " |"
 
         for row in table.Rows do
             for iCol = 0 to table.ColumnNames.Length - 1 do
+                let width = widths[iCol]
                 let strVal =
                     row
                         |> Row.getValue<obj> iCol
-                        |> Option.map string
-                        |> Option.defaultValue ""
-                printf $" | {strVal}"
+                        |> string
+                printf " | %*s" width strVal
             printfn " |"

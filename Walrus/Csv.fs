@@ -55,7 +55,7 @@ module Csv =
                         if String.IsNullOrEmpty(str) then null
                         else Int32.Parse(str) |> box
                     | String -> box str)
-            |> Row.ofValues
+            |> Row.create
 
     let loadTable path =
 
