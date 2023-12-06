@@ -174,7 +174,7 @@ module Table =
         printfn " |"
 
         for name, width in Array.zip table.ColumnNames widths do
-            printf " | %*s" width (String('-', name.Length))
+            printf " | %*s" width (String('-', width))
         printfn " |"
 
         for row in table.Rows do

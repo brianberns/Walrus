@@ -7,12 +7,12 @@ module Program =
     Csv.loadTable @"C:\Users\brian\Downloads\train.csv"
         |> Table.pivot
             (col<int> "Pclass")
-            (col<int> "Survived")
+            (col<bool> "Survived")
             (col<int> "PassengerId")
             Seq.length
             (function
-                | Some 0 -> "Died"
-                | Some 1 -> "Survived"
+                | Some false -> "Died"
+                | Some true -> "Survived"
                 | value -> string value)
         |> Table.orderBy "Pclass"
         |> Table.mapRows

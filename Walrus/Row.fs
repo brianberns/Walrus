@@ -16,11 +16,11 @@ module Row =
         }
 
     /// Unboxed value of the given column in the given row.
-    /// Throws an exception if the value cannot be unboxed.
     let getValue<'t> iCol row =
         unbox<'t> row.Values[iCol]
 
     /// Unboxed value of the given column in the given row.
-    /// Answers None if the value cannot be unboxed.
     let tryGetValue<'t> iCol row =
-        tryUnbox<'t> row.Values[iCol]
+        let value = row.Values[iCol]
+        if isNull value then None
+        else unbox<'t> value |> Some
