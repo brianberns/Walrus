@@ -163,3 +163,9 @@ module Table =
                         |> string
                 printf " | %*s" width strVal
             printfn " |"
+
+type Table with
+
+    member table.Pivot(rowCol, colCol, dataCol, aggregate, ?getColName) =
+        let getColName = defaultArg getColName string
+        Table.pivot rowCol colCol dataCol aggregate getColName table
