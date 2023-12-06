@@ -4,7 +4,7 @@ open Walrus
 
 module Program =
 
-    Csv.loadTable @"C:\Users\brian\Downloads\train.csv"
+    Csv.loadTable "titanic.csv"
         |> Table.pivot
             (col<int> "Pclass")
             (col<bool> "Survived")

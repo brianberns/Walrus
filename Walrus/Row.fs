@@ -12,7 +12,10 @@ module Row =
     /// Creates a row from the given values.
     let create values =
         {
-            Values = Seq.toArray values
+            Values =
+                values
+                    |> Seq.cast<obj>
+                    |> Seq.toArray
         }
 
     /// Unboxed value of the given column in the given row.

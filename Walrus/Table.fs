@@ -42,13 +42,13 @@ module Table =
     /// Creates a table.
     let create columnNames rows =
         {
-            ColumnNames = columnNames
+            ColumnNames = Seq.toArray columnNames
             ColumnMap =
                 columnNames
                     |> Seq.mapi (fun iCol name ->
                         name, iCol)
                     |> Map   // to-do: handle duplicate column names?
-            Rows = rows
+            Rows = Seq.toArray rows
         }
 
     let orderBy<'t when 't : comparison> columnName table =
