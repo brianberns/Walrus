@@ -10,5 +10,9 @@ module Program =
             (col<int> "Survived")
             (col<int> "PassengerId")
             Seq.length
+            (function
+                | Some 0 -> "Died"
+                | Some 1 -> "Survived"
+                | value -> string value)
         |> Table.orderBy "Pclass"
         |> Table.print

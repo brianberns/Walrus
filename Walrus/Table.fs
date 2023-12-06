@@ -74,6 +74,7 @@ module Table =
         (colCol : Column<'col>)
         (dataCol : Column<'data>)
         (aggregate : seq<Option<'data>> -> 'agg)
+        (getColName : Option<'col> -> string)
         table =
 
         let iRowCol = table.ColumnMap[rowCol.Name]
@@ -114,7 +115,7 @@ module Table =
             [|
                 rowCol.Name
                 for colVal in colVals do
-                    string colVal
+                    getColName colVal
             |]
         let rows =
             rowMapPairs
