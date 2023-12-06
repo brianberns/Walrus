@@ -20,18 +20,15 @@ module Csv =
             | "1" -> Some true
             | str ->
                 let parsed, value = Boolean.TryParse(str)
-                if parsed then Some value
-                else None
+                if parsed then Some value else None
 
         let floatParser str =
             let parsed, value = Double.TryParse(str : string)
-            if parsed then Some value
-            else None
+            if parsed then Some value else None
 
         let integerParser str =
             let parsed, value = Int32.TryParse(str : string)
-            if parsed then Some value
-            else None
+            if parsed then Some value else None
 
         Map [
             Boolean, boolParser >> Option.box
