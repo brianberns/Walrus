@@ -37,6 +37,23 @@ module Table =
             Rows = rows
         }
 
+    let orderBy<'t when 't : comparison> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        let rows =
+            table.Rows
+                |> Array.sortBy (Row.getValue<'t> iCol)
+        { table with Rows = rows }
+
+    let getValues<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.Rows
+            |> Seq.map (Row.getValue<'t> iCol)
+
+    let tryGetValues<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.Rows
+            |> Seq.map (Row.tryGetValue<'t> iCol)
+
     /// Creates a pivot table.
     let pivot<'inp, 'out> rowCol colCol dataCol aggregate table =
 
@@ -92,16 +109,6 @@ module Table =
                     } |> Row.create)
                 |> Seq.toArray
         create columnNames rows
-
-    let getValues<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.Rows
-            |> Seq.map (Row.getValue<'t> iCol)
-
-    let tryGetValues<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.Rows
-            |> Seq.map (Row.tryGetValue<'t> iCol)
 
     let print table =
 
