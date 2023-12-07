@@ -5,16 +5,9 @@ open Walrus
 module Program =
 
     Csv.loadTable "titanic.csv"
-        |> Table.pivot
-            (col<int> "Pclass")
-            (col<bool> "Survived")
-            (col<int> "PassengerId")
-            Seq.length
-            (function
-                | Some false -> "Died"
-                | Some true -> "Survived"
-                | value -> string value)
-        |> Table.orderBy "Pclass"
+        |> Table.pivot<int, _> "Pclass" "Survived" "PassengerId" Seq.length
+        |> Table.sortRowsBy "Pclass"
+        |> Table.withColumnNames [ "Pclass"; "Died"; "Survived" ]
         |> Table.mapRows
             [
                 "Died (%)", (fun row ->

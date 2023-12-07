@@ -2,21 +2,6 @@
 
 open System
 
-/// Describes a column of a specific type.
-type Column<'t> =
-    {
-        Name : string
-    }
-
-[<AutoOpen>]
-module Column =
-
-    /// Describes a column of a specific type.
-    let col<'t> name : Column<'t> =
-        {
-            Name = name
-        }
-
 type Table =
     private {
 
@@ -30,7 +15,7 @@ type Table =
         InternalRows : InternalRow[]
     }
 
-module Option =
+module private Option =
 
     /// Boxes the contained value.
     let box opt =
@@ -42,6 +27,10 @@ module Table =
 
     /// Creates a table.
     let private create columnNames rows =
+        let columnNames = Seq.toArray columnNames
+        for row in rows do
+            if row.Values.Length <> columnNames.Length then
+                failwith $"Invalid row length: {row.Values.Length}"
         {
             ColumnNames = Seq.toArray columnNames
             ColumnMap =
@@ -60,7 +49,7 @@ module Table =
 
     /// Creates a new table with the rows ordered by the given
     /// column.
-    let orderBy<'t when 't : comparison> columnName table =
+    let sortRowsBy<'t when 't : comparison> columnName table =
         let rows =
             let iCol = table.ColumnMap[columnName]
             table.InternalRows
@@ -78,31 +67,30 @@ module Table =
             |> Seq.map (InternalRow.tryGetValue<'t> iCol)
 
     /// Creates a pivot table.
-    let pivot
-        (rowCol : Column<'row>)
-        (colCol : Column<'col>)
-        (dataCol : Column<'data>)
-        (aggregate : seq<Option<'data>> -> 'agg)
-        (getColName : Option<'col> -> string)
+    let pivot<'t, 'u>
+        rowColName
+        colColName
+        dataColName
+        (aggregate : seq<Option<'t>> -> 'u)
         table =
 
-        let iRowCol = table.ColumnMap[rowCol.Name]
-        let iColCol = table.ColumnMap[colCol.Name]
-        let iDataCol = table.ColumnMap[dataCol.Name]
+        let iRowCol = table.ColumnMap[rowColName]
+        let iColCol = table.ColumnMap[colColName]
+        let iDataCol = table.ColumnMap[dataColName]
 
             // find distinct row values
         let rowMapPairs =
             table.InternalRows
-                |> Seq.groupBy (InternalRow.tryGetValue<'row> iRowCol)
+                |> Seq.groupBy (InternalRow.tryGetValue iRowCol)
                 |> Seq.map (fun (rowVal, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                InternalRow.tryGetValue<'col> iColCol row,
-                                InternalRow.tryGetValue<'data> iDataCol row)
+                                InternalRow.tryGetValue iColCol row,
+                                InternalRow.tryGetValue<'t> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
-                                let aggVal : 'agg =
+                                let aggVal =
                                     pairs
                                         |> Seq.map snd
                                         |> aggregate
@@ -122,9 +110,9 @@ module Table =
             // create table
         let colNames =
             [|
-                rowCol.Name
+                rowColName
                 for colVal in colVals do
-                    getColName colVal
+                    string colVal
             |]
         let rows =
             rowMapPairs
@@ -138,6 +126,9 @@ module Table =
                     } |> InternalRow.create)
                 |> Seq.toArray
         create colNames rows
+
+    let withColumnNames columnNames table =
+        create columnNames table.InternalRows
 
     let mapRows mappings table =
         let colNames : string[] =
@@ -188,9 +179,3 @@ module Table =
                         |> string
                 printf " | %*s" width strVal
             printfn " |"
-
-type Table with
-
-    member table.Pivot(rowCol, colCol, dataCol, aggregate, ?getColName) =
-        let getColName = defaultArg getColName string
-        Table.pivot rowCol colCol dataCol aggregate getColName table
