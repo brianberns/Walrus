@@ -2,6 +2,38 @@
 
 open System
 
+type Column<'t> =
+    {
+        Values : 't[]
+    }
+
+module Column =
+
+    let create values =
+        {
+            Values = Seq.toArray values
+        }
+
+    let map mapping column =
+        column.Values
+            |> Seq.map mapping
+            |> create
+
+type Column<'t> with
+
+    static member inline (+)(columnA : Column<'u>, columnB : Column<'u>) =
+        Array.map2 (+) columnA.Values columnB.Values |> Column.create
+
+    static member inline (-)(columnA : Column<'u>, columnB : Column<'u>) =
+        Array.map2 (-) columnA.Values columnB.Values |> Column.create
+
+    static member inline (*)(columnA : Column<'u>, columnB : Column<'u>) =
+        Array.map2 (*) columnA.Values columnB.Values |> Column.create
+
+    static member inline (/)(columnA : Column<'u>, columnB : Column<'u>) =
+        Array.map2 (/) columnA.Values columnB.Values |> Column.create
+
+/// A table of data in rows and columns.
 type Table =
     private {
 
@@ -25,27 +57,91 @@ module private Option =
 
 module Table =
 
-    /// Creates a table.
+    (*
+     * Access
+     *)
+
+    let getColumn<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.InternalRows
+            |> Seq.map (InternalRow.getValue<'t> iCol)
+            |> Column.create
+
+    let tryGetColumn<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.InternalRows
+            |> Seq.map (InternalRow.tryGetValue<'t> iCol)
+            |> Column.create
+
+    /// Prints the given table to the console.
+    let print table =
+
+        let widths =
+            [|
+                for colName in table.ColumnNames do
+                    let strs =
+                        seq {
+                            yield colName
+                            let col = getColumn colName table
+                            for value in col.Values do
+                                yield string value
+                        }
+                    strs
+                        |> Seq.map String.length
+                        |> Seq.max
+            |]
+
+        for colName, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width colName
+        printfn " |"
+
+        for _, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width (String('-', width))
+        printfn " |"
+
+        for row in table.InternalRows do
+            for iCol = 0 to table.ColumnNames.Length - 1 do
+                let width = widths[iCol]
+                let strVal =
+                    row
+                        |> InternalRow.getValue<obj> iCol
+                        |> string
+                printf " | %*s" width strVal
+            printfn " |"
+
+    (*
+     * Creation
+     *)
+
+    /// Creates a table from the given row values.
     let private create columnNames rows =
+
         let columnNames = Seq.toArray columnNames
-        for row in rows do
+        for (row : InternalRow) in rows do
             if row.Values.Length <> columnNames.Length then
                 failwith $"Invalid row length: {row.Values.Length}"
+
         {
             ColumnNames = Seq.toArray columnNames
             ColumnMap =
                 columnNames
-                    |> Seq.mapi (fun iCol name ->
-                        name, iCol)
+                    |> Seq.mapi (fun iCol colName ->
+                        colName, iCol)
                     |> Map   // to-do: handle duplicate column names?
             InternalRows = Seq.toArray rows
         }
 
     /// Creates a table from the given row values.
     let ofRows columnNames rowValues =
-        let rows =
-            rowValues |> Seq.map InternalRow.create
-        create columnNames rows
+        rowValues
+            |> Seq.map InternalRow.create
+            |> create columnNames
+
+    let ofColumn columnName (column : Column<_>) =
+        column.Values
+            |> Seq.map (fun value ->
+                InternalRow.create [value])
+            |> create [columnName]
 
     /// Creates a new table with the rows ordered by the given
     /// column.
@@ -56,15 +152,19 @@ module Table =
                 |> Array.sortBy (InternalRow.getValue<'t> iCol)
         { table with InternalRows = rows }
 
-    let getColumn<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.InternalRows
-            |> Seq.map (InternalRow.getValue<'t> iCol)
+    /// Creates a new table with the given replacement column names.
+    let withColumnNames columnNames table =
+        create columnNames table.InternalRows
 
-    let tryGetColumn<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.InternalRows
-            |> Seq.map (InternalRow.tryGetValue<'t> iCol)
+    let unionColumns tableA tableB =
+        let columnNames =
+            Array.append tableA.ColumnNames tableB.ColumnNames
+        let rows =
+            (tableA.InternalRows, tableB.InternalRows)
+                ||> Array.map2 (fun rowA rowB ->
+                    Array.append rowA.Values rowB.Values
+                        |> InternalRow.create)
+        create columnNames rows
 
     /// Creates a pivot table.
     let pivot<'t, 'u>
@@ -127,55 +227,8 @@ module Table =
                 |> Seq.toArray
         create colNames rows
 
-    let withColumnNames columnNames table =
-        create columnNames table.InternalRows
+type Table with
 
-    let mapRows mappings table =
-        let colNames : string[] =
-            Seq.map fst mappings
-                |> Seq.toArray
-        let rows =
-            table.InternalRows
-                |> Array.map (fun internalRow ->
-                    let values =
-                        mappings
-                            |> Seq.map (fun (_, mapping) ->
-                                let row =
-                                    Row.create internalRow table.ColumnMap
-                                mapping row |> box)
-                    InternalRow.create values)
-        create colNames rows
-
-    let print table =
-
-        let widths =
-            [|
-                for name in table.ColumnNames do
-                    let strs =
-                        seq {
-                            name
-                            for value in getColumn<obj> name table do
-                                string value
-                        }
-                    strs
-                        |> Seq.map String.length
-                        |> Seq.max
-            |]
-
-        for name, width in Array.zip table.ColumnNames widths do
-            printf " | %*s" width name
-        printfn " |"
-
-        for _, width in Array.zip table.ColumnNames widths do
-            printf " | %*s" width (String('-', width))
-        printfn " |"
-
-        for row in table.InternalRows do
-            for iCol = 0 to table.ColumnNames.Length - 1 do
-                let width = widths[iCol]
-                let strVal =
-                    row
-                        |> InternalRow.getValue<obj> iCol
-                        |> string
-                printf " | %*s" width strVal
-            printfn " |"
+    static member (?) (table : Table, columnName) =
+        Table.getColumn<obj> columnName table
+            |> Column.map Convert.ToDouble
