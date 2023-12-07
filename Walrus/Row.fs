@@ -28,18 +28,20 @@ module internal InternalRow =
         if isNull value then None
         else unbox<'t> value |> Some
 
-/// External row type.
+/// A row in a table.
 type Row =
     private {
 
+        /// Internal row values.
         InternalRow : InternalRow
 
-        /// Column indexes.
+        /// Column indexes from table.
         ColumnMap : Map<string, int (*iCol*)>
     }
 
 module Row =
 
+    /// Creates a row.
     let internal create internalRow columnMap =
         {
             InternalRow = internalRow
