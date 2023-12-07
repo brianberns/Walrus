@@ -33,13 +33,13 @@ type TestClass () =
                 |> Table.orderBy "Pclass"
                 |> Table.mapRows
                     [
-                        "Died (%)", (fun table row ->
-                            let died = Table.getValue<int> "Died" table row
-                            let survived = Table.getValue<int> "Survived" table row
+                        "Died (%)", (fun row table ->
+                            let died = Table.getValue<int> "Died" row table
+                            let survived = Table.getValue<int> "Survived" row table
                             round (100.0 * float died / float (died + survived)))
-                        "Survived (%)", (fun table row ->
-                            let died = Table.getValue<int> "Died" table row
-                            let survived = Table.getValue<int> "Survived" table row
+                        "Survived (%)", (fun row table ->
+                            let died = Table.getValue<int> "Died" row table
+                            let survived = Table.getValue<int> "Survived" row table
                             round (100.0 * float survived / float (died + survived)))
                     ]
 

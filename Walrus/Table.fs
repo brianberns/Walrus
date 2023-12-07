@@ -2,7 +2,7 @@
 
 open System
 
-/// Typed column in a table.
+/// Describes a column of a specific type.
 type Column<'t> =
     {
         Name : string
@@ -11,6 +11,7 @@ type Column<'t> =
 [<AutoOpen>]
 module Column =
 
+    /// Describes a column of a specific type.
     let col<'t> name : Column<'t> =
         {
             Name = name
@@ -51,20 +52,24 @@ module Table =
             Rows = Seq.toArray rows
         }
 
+    /// Creates a new table with the rows ordered by the given
+    /// column.
     let orderBy<'t when 't : comparison> columnName table =
-        let iCol = table.ColumnMap[columnName]
         let rows =
+            let iCol = table.ColumnMap[columnName]
             table.Rows
                 |> Array.sortBy (Row.getValue<'t> iCol)
         { table with Rows = rows }
 
-    let getValue<'t> columnName table =
+    /// Answers the value of the given row and column in the
+    /// given table.
+    let getValue<'t> columnName row table =
         let iCol = table.ColumnMap[columnName]
-        Row.getValue<'t> iCol
+        Row.getValue<'t> iCol row
 
-    let tryGetValue<'t> columnName table =
+    let tryGetValue<'t> columnName row table =
         let iCol = table.ColumnMap[columnName]
-        Row.tryGetValue<'t> iCol
+        Row.tryGetValue<'t> iCol row
 
     let getColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
@@ -148,7 +153,7 @@ module Table =
                     let values =
                         mappings
                             |> Seq.map (fun (_, mapping) ->
-                                mapping table row
+                                mapping row table
                                     |> box)
                     Row.create values)
         create colNames rows
@@ -173,7 +178,7 @@ module Table =
             printf " | %*s" width name
         printfn " |"
 
-        for name, width in Array.zip table.ColumnNames widths do
+        for _, width in Array.zip table.ColumnNames widths do
             printf " | %*s" width (String('-', width))
         printfn " |"
 
