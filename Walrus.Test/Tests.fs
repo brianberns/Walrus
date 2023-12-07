@@ -18,22 +18,19 @@ type TestClass () =
             ] |> Table.ofRows [ "Died (%)"; "Survived (%)" ]
 
         let actual =
-            Csv.loadTable "titanic.csv"
-                |> Table.pivot<int, _> "Pclass" "Survived" "PassengerId" Seq.length
-                |> Table.sortRowsBy "Pclass"
-                |> Table.withColumnNames [ "Pclass"; "Died"; "Survived" ]
-                (*
-                |> Table.mapRows
-                    [
-                        "Died (%)", (fun row ->
-                            let died = Row.getValue<int> "Died" row
-                            let survived = Row.getValue<int> "Survived" row
-                            round (100.0 * float died / float (died + survived)))
-                        "Survived (%)", (fun row ->
-                            let died = Row.getValue<int> "Died" row
-                            let survived = Row.getValue<int> "Survived" row
-                            round (100.0 * float survived / float (died + survived)))
-                    ]
-                *)
+            let byClass =
+                Csv.loadTable "titanic.csv"
+                    |> Table.pivot<int, _> "Pclass" "Survived" "PassengerId" Seq.length
+                    |> Table.sortRowsBy "Pclass"
+                    |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
+            let byClass =
+                byClass?Died + byClass?Survived
+                    |> Table.ofColumn "Total"
+                    |> Table.unionColumns byClass
+            Table.ofColumns
+                [
+                    "Died (%)", round (byClass?Died / byClass?Total * 100.)
+                    "Survived (%)", round (byClass?Survived / byClass?Total * 100.)
+                ]
 
         Assert.AreEqual<_>(expected, actual)

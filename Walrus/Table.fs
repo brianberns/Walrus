@@ -7,12 +7,57 @@ type Column<'t> =
         Values : 't[]
     }
 
+    static member inline (+)(columnA : Column<_>, columnB : Column<_>) =
+        { Values = Array.map2 (+) columnA.Values columnB.Values }
+
+    static member inline (-)(columnA : Column<_>, columnB : Column<_>) =
+        { Values = Array.map2 (-) columnA.Values columnB.Values }
+
+    static member inline (*)(columnA : Column<_>, columnB : Column<_>) =
+        { Values = Array.map2 (*) columnA.Values columnB.Values }
+
+    static member inline (/)(columnA : Column<_>, columnB : Column<_>)  =
+        { Values = Array.map2 (/) columnA.Values columnB.Values }
+
+    static member inline (+)(column : Column<'u>, value : 'u) =
+        { Values = Array.map (fun v -> v + value) column.Values }
+
+    static member inline (-)(column : Column<'u>, value : 'u) =
+        { Values = Array.map (fun v -> v - value) column.Values }
+
+    static member inline (*)(column : Column<'u>, value : 'u) =
+        { Values = Array.map (fun v -> v * value) column.Values }
+
+    static member inline (/)(column : Column<'u>, value : 'u) =
+        { Values = Array.map (fun v -> v / value) column.Values }
+
+    (*
+    static member inline (+)(value : 'u, column : Column<'u>) =
+        { Values = Array.map (fun v -> value + v) column.Values }
+
+    static member inline (-)(value : 'u, column : Column<'u>) =
+        { Values = Array.map (fun v -> value - v) column.Values }
+
+    static member inline (*)(value : 'u, column : Column<'u>) =
+        { Values = Array.map (fun v -> value * v) column.Values }
+
+    static member inline (/)(value : 'u, column : Column<'u>) =
+        { Values = Array.map (fun v -> value / v) column.Values }
+    *)
+
 module Column =
+
+    let getValue iRow column =
+        column.Values[iRow]
 
     let create values =
         {
             Values = Seq.toArray values
         }
+
+    let replicate count initial =
+        Seq.replicate count initial
+            |> create
 
     let map mapping column =
         column.Values
@@ -21,17 +66,8 @@ module Column =
 
 type Column<'t> with
 
-    static member inline (+)(columnA : Column<'u>, columnB : Column<'u>) =
-        Array.map2 (+) columnA.Values columnB.Values |> Column.create
-
-    static member inline (-)(columnA : Column<'u>, columnB : Column<'u>) =
-        Array.map2 (-) columnA.Values columnB.Values |> Column.create
-
-    static member inline (*)(columnA : Column<'u>, columnB : Column<'u>) =
-        Array.map2 (*) columnA.Values columnB.Values |> Column.create
-
-    static member inline (/)(columnA : Column<'u>, columnB : Column<'u>) =
-        Array.map2 (/) columnA.Values columnB.Values |> Column.create
+    static member inline Round(column : Column<_>) =
+        Column.map round column
 
 /// A table of data in rows and columns.
 type Table =
@@ -137,11 +173,20 @@ module Table =
             |> Seq.map InternalRow.create
             |> create columnNames
 
-    let ofColumn columnName (column : Column<_>) =
-        column.Values
-            |> Seq.map (fun value ->
-                InternalRow.create [value])
-            |> create [columnName]
+    let ofColumns columnPairs =
+        let columnNames, columns = Seq.unzip columnPairs
+        seq {
+            let nRows =
+                columns
+                    |> Seq.map (fun col -> col.Values.Length)
+                    |> Seq.distinct
+                    |> Seq.exactlyOne
+            for iRow = 0 to nRows - 1 do
+                Seq.map (Column.getValue iRow) columns
+        } |> ofRows columnNames
+
+    let ofColumn columnName column =
+        ofColumns [| columnName, column |]
 
     /// Creates a new table with the rows ordered by the given
     /// column.
@@ -153,7 +198,7 @@ module Table =
         { table with InternalRows = rows }
 
     /// Creates a new table with the given replacement column names.
-    let withColumnNames columnNames table =
+    let renameColumns columnNames table =
         create columnNames table.InternalRows
 
     let unionColumns tableA tableB =

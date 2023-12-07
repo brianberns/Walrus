@@ -14,3 +14,8 @@ module Seq =
                     maxItem <- e.Current
             Some maxItem
         else None
+
+    // https://stackoverflow.com/questions/37034919/how-to-do-seq-unzip
+    let unzip items =
+        let cached = Seq.cache items
+        Seq.map fst cached, Seq.map snd cached
