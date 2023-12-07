@@ -69,7 +69,6 @@ module Csv =
         Array.zip columnTypes strings
             |> Array.map (fun (colType, str) ->
                 parserMap[colType] str)
-            |> Row.create
 
     let loadTable path =
 
@@ -85,4 +84,4 @@ module Csv =
                 for line in lines do
                     createRow colTypes line
             |]
-        Table.create headers rows
+        Table.ofRows headers rows

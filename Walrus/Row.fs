@@ -1,13 +1,13 @@
 ﻿namespace Walrus
 
-type Row =
-    private {
-
+/// Internal row type.
+type internal InternalRow =
+    {
         /// Boxed values for this row.
         Values : obj[]
     }
 
-module Row =
+module internal InternalRow =
 
     /// Creates a row from the given values.
     let create values =
@@ -27,3 +27,31 @@ module Row =
         let value = row.Values[iCol]
         if isNull value then None
         else unbox<'t> value |> Some
+
+/// External row type.
+type Row =
+    private {
+
+        InternalRow : InternalRow
+
+        /// Column indexes.
+        ColumnMap : Map<string, int (*iCol*)>
+    }
+
+module Row =
+
+    let internal create internalRow columnMap =
+        {
+            InternalRow = internalRow
+            ColumnMap = columnMap
+        }
+
+    /// Unboxed value of the given column in the given row.
+    let getValue<'t> columnName row =
+        let iCol = row.ColumnMap[columnName]
+        InternalRow.getValue<'t> iCol row.InternalRow
+
+    /// Unboxed value of the given column in the given row.
+    let tryGetValue<'t> columnName row =
+        let iCol = row.ColumnMap[columnName]
+        InternalRow.tryGetValue<'t> iCol row.InternalRow

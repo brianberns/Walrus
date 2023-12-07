@@ -27,7 +27,7 @@ type Table =
         ColumnMap : Map<string, int (*iCol*)>
 
         /// Rows in this table.
-        Rows : Row[]
+        InternalRows : InternalRow[]
     }
 
 module Option =
@@ -41,7 +41,7 @@ module Option =
 module Table =
 
     /// Creates a table.
-    let create columnNames rows =
+    let private create columnNames rows =
         {
             ColumnNames = Seq.toArray columnNames
             ColumnMap =
@@ -49,37 +49,33 @@ module Table =
                     |> Seq.mapi (fun iCol name ->
                         name, iCol)
                     |> Map   // to-do: handle duplicate column names?
-            Rows = Seq.toArray rows
+            InternalRows = Seq.toArray rows
         }
+
+    /// Creates a table from the given row values.
+    let ofRows columnNames rowValues =
+        let rows =
+            rowValues |> Seq.map InternalRow.create
+        create columnNames rows
 
     /// Creates a new table with the rows ordered by the given
     /// column.
     let orderBy<'t when 't : comparison> columnName table =
         let rows =
             let iCol = table.ColumnMap[columnName]
-            table.Rows
-                |> Array.sortBy (Row.getValue<'t> iCol)
-        { table with Rows = rows }
-
-    /// Answers the value of the given row and column in the
-    /// given table.
-    let getValue<'t> columnName row table =
-        let iCol = table.ColumnMap[columnName]
-        Row.getValue<'t> iCol row
-
-    let tryGetValue<'t> columnName row table =
-        let iCol = table.ColumnMap[columnName]
-        Row.tryGetValue<'t> iCol row
+            table.InternalRows
+                |> Array.sortBy (InternalRow.getValue<'t> iCol)
+        { table with InternalRows = rows }
 
     let getColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
-        table.Rows
-            |> Seq.map (Row.getValue<'t> iCol)
+        table.InternalRows
+            |> Seq.map (InternalRow.getValue<'t> iCol)
 
     let tryGetColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
-        table.Rows
-            |> Seq.map (Row.tryGetValue<'t> iCol)
+        table.InternalRows
+            |> Seq.map (InternalRow.tryGetValue<'t> iCol)
 
     /// Creates a pivot table.
     let pivot
@@ -96,14 +92,14 @@ module Table =
 
             // find distinct row values
         let rowMapPairs =
-            table.Rows
-                |> Seq.groupBy (Row.tryGetValue<'row> iRowCol)
+            table.InternalRows
+                |> Seq.groupBy (InternalRow.tryGetValue<'row> iRowCol)
                 |> Seq.map (fun (rowVal, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                Row.tryGetValue<'col> iColCol row,
-                                Row.tryGetValue<'data> iDataCol row)
+                                InternalRow.tryGetValue<'col> iColCol row,
+                                InternalRow.tryGetValue<'data> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
                                 let aggVal : 'agg =
@@ -139,7 +135,7 @@ module Table =
                             colAggMap
                                 |> Map.tryFind colVal
                                 |> Option.box
-                    } |> Row.create)
+                    } |> InternalRow.create)
                 |> Seq.toArray
         create colNames rows
 
@@ -148,14 +144,15 @@ module Table =
             Seq.map fst mappings
                 |> Seq.toArray
         let rows =
-            table.Rows
-                |> Array.map (fun row ->
+            table.InternalRows
+                |> Array.map (fun internalRow ->
                     let values =
                         mappings
                             |> Seq.map (fun (_, mapping) ->
-                                mapping row table
-                                    |> box)
-                    Row.create values)
+                                let row =
+                                    Row.create internalRow table.ColumnMap
+                                mapping row |> box)
+                    InternalRow.create values)
         create colNames rows
 
     let print table =
@@ -182,12 +179,12 @@ module Table =
             printf " | %*s" width (String('-', width))
         printfn " |"
 
-        for row in table.Rows do
+        for row in table.InternalRows do
             for iCol = 0 to table.ColumnNames.Length - 1 do
                 let width = widths[iCol]
                 let strVal =
                     row
-                        |> Row.getValue<obj> iCol
+                        |> InternalRow.getValue<obj> iCol
                         |> string
                 printf " | %*s" width strVal
             printfn " |"
