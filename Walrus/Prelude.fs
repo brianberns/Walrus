@@ -15,6 +15,7 @@ module Seq =
             Some maxItem
         else None
 
+    /// Splits a sequence of pairs into two sequences.
     // https://stackoverflow.com/questions/37034919/how-to-do-seq-unzip
     let unzip items =
         let cached = Seq.cache items
