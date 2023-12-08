@@ -42,28 +42,28 @@ type Column<'t> with
     static member inline (/)(columnA : Column<_>, columnB : Column<_>)  =
         Array.map2 (/) columnA.Values columnB.Values |> Column.create
 
-    static member inline (+)(column : Column<_>, value : 'u when 'u :> INumber<_>) =
+    static member inline (+)(column : Column<_>, value : #INumber<_>) =
         Array.map (fun v -> v + value) column.Values |> Column.create
 
-    static member inline (-)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+    static member inline (-)(column : Column<_>, value : #INumber<_>) =
         Array.map (fun v -> v - value) column.Values |> Column.create
 
-    static member inline (*)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+    static member inline (*)(column : Column<_>, value : #INumber<_>) =
         Array.map (fun v -> v * value) column.Values |> Column.create
 
-    static member inline (/)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+    static member inline (/)(column : Column<_>, value : #INumber<_>) =
         Array.map (fun v -> v / value) column.Values |> Column.create
 
-    static member inline (+)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+    static member inline (+)(value : #INumber<_>, column : Column<_>) =
         Array.map (fun v -> value + v) column.Values |> Column.create
 
-    static member inline (-)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+    static member inline (-)(value : #INumber<_>, column : Column<_>) =
         Array.map (fun v -> value - v) column.Values |> Column.create
 
-    static member inline (*)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+    static member inline (*)(value : #INumber<_>, column : Column<_>) =
         Array.map (fun v -> value * v) column.Values |> Column.create
 
-    static member inline (/)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+    static member inline (/)(value : #INumber<_>, column : Column<_>) =
         Array.map (fun v -> value / v) column.Values |> Column.create
 
     /// Rounds the values in the given column.
