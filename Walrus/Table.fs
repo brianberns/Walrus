@@ -16,14 +16,6 @@ type Table =
         InternalRows : InternalRow[]
     }
 
-module private Option =
-
-    /// Boxes the contained value.
-    let box opt =
-        opt
-            |> Option.map box
-            |> Option.defaultValue null
-
 module Table =
 
     (*
@@ -125,6 +117,15 @@ module Table =
     /// Creates a table from the given column.
     let ofColumn columnName column =
         ofColumns [| columnName, column |]
+
+    /// Creates a table from the given CSV file.
+    let loadCsv path =
+        let columnNames, rowValues = Csv.loadFile path
+        ofRows columnNames rowValues
+
+    (*
+     * Manipulation
+     *)
 
     /// Creates a new table with the rows ordered by the given
     /// column.

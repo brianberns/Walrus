@@ -9,8 +9,8 @@
     <Compile Include="Prelude.fs" />
     <Compile Include="Row.fs" />
     <Compile Include="Column.fs" />
-    <Compile Include="Table.fs" />
     <Compile Include="Csv.fs" />
+    <Compile Include="Table.fs" />
   </ItemGroup>
 
   <ItemGroup>

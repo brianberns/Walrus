@@ -5,7 +5,15 @@ open System.IO
 
 open CSVFile
 
-module Csv =
+module internal Option =
+
+    /// Boxes the contained value.
+    let box opt =
+        opt
+            |> Option.map box
+            |> Option.defaultValue null
+
+module internal Csv =
 
     type private ColumnType =
         | Boolean
@@ -70,7 +78,7 @@ module Csv =
             |> Array.map (fun (colType, str) ->
                 parserMap[colType] str)
 
-    let loadTable path =
+    let loadFile path =
 
         let headers, lines =
             use reader = new StreamReader(path : string)
@@ -84,4 +92,4 @@ module Csv =
                 for line in lines do
                     createRow colTypes line
             |]
-        Table.ofRows headers rows
+        headers, rows
