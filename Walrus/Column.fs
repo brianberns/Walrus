@@ -1,49 +1,13 @@
 ﻿namespace Walrus
 
+open System.Numerics
+
 /// A typed column of values.
 type Column<'t> =
     {
         /// Values in this column.
         Values : 't[]
     }
-
-    static member inline (+)(columnA : Column<_>, columnB : Column<_>) =
-        { Values = Array.map2 (+) columnA.Values columnB.Values }
-
-    static member inline (-)(columnA : Column<_>, columnB : Column<_>) =
-        { Values = Array.map2 (-) columnA.Values columnB.Values }
-
-    static member inline (*)(columnA : Column<_>, columnB : Column<_>) =
-        { Values = Array.map2 (*) columnA.Values columnB.Values }
-
-    static member inline (/)(columnA : Column<_>, columnB : Column<_>)  =
-        { Values = Array.map2 (/) columnA.Values columnB.Values }
-
-    static member inline (+)(column : Column<'u>, value : 'u) =
-        { Values = Array.map (fun v -> v + value) column.Values }
-
-    static member inline (-)(column : Column<'u>, value : 'u) =
-        { Values = Array.map (fun v -> v - value) column.Values }
-
-    static member inline (*)(column : Column<'u>, value : 'u) =
-        { Values = Array.map (fun v -> v * value) column.Values }
-
-    static member inline (/)(column : Column<'u>, value : 'u) =
-        { Values = Array.map (fun v -> v / value) column.Values }
-
-    (*
-    static member inline (+)(value : 'u, column : Column<'u>) =
-        { Values = Array.map (fun v -> value + v) column.Values }
-
-    static member inline (-)(value : 'u, column : Column<'u>) =
-        { Values = Array.map (fun v -> value - v) column.Values }
-
-    static member inline (*)(value : 'u, column : Column<'u>) =
-        { Values = Array.map (fun v -> value * v) column.Values }
-
-    static member inline (/)(value : 'u, column : Column<'u>) =
-        { Values = Array.map (fun v -> value / v) column.Values }
-    *)
 
 module Column =
 
@@ -65,6 +29,42 @@ module Column =
             |> create
 
 type Column<'t> with
+
+    static member inline (+)(columnA : Column<_>, columnB : Column<_>) =
+        Array.map2 (+) columnA.Values columnB.Values |> Column.create
+
+    static member inline (-)(columnA : Column<_>, columnB : Column<_>) =
+        Array.map2 (-) columnA.Values columnB.Values |> Column.create
+
+    static member inline (*)(columnA : Column<_>, columnB : Column<_>) =
+        Array.map2 (*) columnA.Values columnB.Values |> Column.create
+
+    static member inline (/)(columnA : Column<_>, columnB : Column<_>)  =
+        Array.map2 (/) columnA.Values columnB.Values |> Column.create
+
+    static member inline (+)(column : Column<_>, value : 'u when 'u :> INumber<_>) =
+        Array.map (fun v -> v + value) column.Values |> Column.create
+
+    static member inline (-)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+        Array.map (fun v -> v - value) column.Values |> Column.create
+
+    static member inline (*)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+        Array.map (fun v -> v * value) column.Values |> Column.create
+
+    static member inline (/)(column : Column<_>, value : 'u : 'u when 'u :> INumber<_>) =
+        Array.map (fun v -> v / value) column.Values |> Column.create
+
+    static member inline (+)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+        Array.map (fun v -> value + v) column.Values |> Column.create
+
+    static member inline (-)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+        Array.map (fun v -> value - v) column.Values |> Column.create
+
+    static member inline (*)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+        Array.map (fun v -> value * v) column.Values |> Column.create
+
+    static member inline (/)(value : 'u when 'u :> INumber<_>, column : Column<_>) =
+        Array.map (fun v -> value / v) column.Values |> Column.create
 
     /// Rounds the values in the given column.
     static member Round(column : Column<_>) =
