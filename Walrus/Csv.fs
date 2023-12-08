@@ -15,12 +15,14 @@ module internal Option =
 
 module internal Csv =
 
+    /// Supported data types.
     type private ColumnType =
         | Boolean
         | Float
         | Integer
         | String
 
+    /// Parser for each supported data type.
     let private parserMap =
 
         let boolParser = function
@@ -45,14 +47,17 @@ module internal Csv =
             String, box
         ]
 
+    /// Data type preferences. E.g. Prefer to parse "1" as a
+    /// boolean, rather than a number or a string.
     let private colTypePriority =
         [|
-            Boolean
+            Boolean   // highest priority
             Integer
             Float
-            String
+            String    // lowest priority
         |]
 
+    /// Infers a data type for each colummn in the given lines.
     let private inferTypes nCols lines =
 
         let colTypeSets =
@@ -73,11 +78,14 @@ module internal Csv =
                     |> Seq.find (fun ct -> colTypes.Contains(ct)))
             |> Seq.toArray
 
+    /// Parses a row of values of the given types from the given
+    /// strings.
     let private createRow columnTypes strings =
         Array.zip columnTypes strings
             |> Array.map (fun (colType, str) ->
                 parserMap[colType] str)
 
+    /// Loads the given CSV file.
     let loadFile path =
 
         let headers, lines =
