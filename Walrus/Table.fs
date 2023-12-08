@@ -16,6 +16,11 @@ type Table =
         InternalRows : InternalRow[]
     }
 
+    /// Rows in this table.
+    member table.Rows =
+        table.InternalRows
+            |> Seq.map (Row.create table.ColumnMap)
+
 module Table =
 
     (*
@@ -122,6 +127,20 @@ module Table =
     let loadCsv path =
         let columnNames, rowValues = Csv.loadFile path
         ofRows columnNames rowValues
+
+    /// Creates a table from the given records.
+    let ofRecords (records : seq<'t>) =
+        let fields =
+            FSharp.Reflection.FSharpType.GetRecordFields(typeof<'t>)
+        let columnNames =
+            fields |> Seq.map (fun field -> field.Name)
+        seq {
+            for rcd in records do
+                seq {
+                    for field in fields do
+                        field.GetValue(rcd)
+                }
+        } |> ofRows columnNames
 
     (*
      * Manipulation

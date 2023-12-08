@@ -15,6 +15,10 @@ module Column =
     let getValue iRow column =
         column.Values[iRow]
 
+    /// All values in the given column.
+    let values column =
+        column.Values
+
     /// Creates a column from the given values.
     let create values =
         {

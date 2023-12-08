@@ -32,20 +32,20 @@ module internal InternalRow =
 type Row =
     private {
 
-        /// Internal row values.
-        InternalRow : InternalRow
-
         /// Column indexes from table.
         ColumnMap : Map<string, int (*iCol*)>
+
+        /// Internal row values.
+        InternalRow : InternalRow
     }
 
 module Row =
 
     /// Creates a row.
-    let internal create internalRow columnMap =
+    let internal create columnMap internalRow =
         {
-            InternalRow = internalRow
             ColumnMap = columnMap
+            InternalRow = internalRow
         }
 
     /// Unboxed value of the given column in the given row.
@@ -57,3 +57,11 @@ module Row =
     let tryGetValue<'t> columnName row =
         let iCol = row.ColumnMap[columnName]
         InternalRow.tryGetValue<'t> iCol row.InternalRow
+
+type Row with
+
+    /// Unboxed value of the given column in the given row.
+    member row.GetValue<'t>(columnName) = Row.getValue<'t> columnName row
+
+    /// Unboxed value of the given column in the given row.
+    member row.TryGetValue<'t>(columnName) = Row.tryGetValue<'t> columnName row
