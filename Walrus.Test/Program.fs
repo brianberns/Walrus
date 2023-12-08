@@ -9,7 +9,7 @@ module Program =
 
         let byClass =
             Csv.loadTable "titanic.csv"
-                |> Table.pivot<int, _> "Pclass" "Survived" "PassengerId" Seq.length
+                |> Table.pivot "Pclass" "Survived" "PassengerId" Seq.length<int option>
                 |> Table.sortRowsBy "Pclass"
                 |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
         let byClass =
@@ -18,6 +18,7 @@ module Program =
                 |> Table.unionColumns byClass
         Table.ofColumns
             [
+                "Passenger class", byClass?Pclass
                 "Died (%)", round (byClass?Died / byClass?Total * 100.)
                 "Survived (%)", round (byClass?Survived / byClass?Total * 100.)
             ] |> Table.print

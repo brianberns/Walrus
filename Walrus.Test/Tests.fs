@@ -12,15 +12,15 @@ type TestClass () =
 
         let expected =
             [
-                [ 37.; 63. ]
-                [ 53.; 47. ]
-                [ 76.; 24. ]
-            ] |> Table.ofRows [ "Died (%)"; "Survived (%)" ]
+                [ 1.; 37.; 63. ]
+                [ 2.; 53.; 47. ]
+                [ 3.; 76.; 24. ]
+            ] |> Table.ofRows [ "Passenger class"; "Died (%)"; "Survived (%)" ]
 
         let actual =
             let byClass =
                 Csv.loadTable "titanic.csv"
-                    |> Table.pivot<int, _> "Pclass" "Survived" "PassengerId" Seq.length
+                    |> Table.pivot "Pclass" "Survived" "PassengerId" Seq.length<int option>
                     |> Table.sortRowsBy "Pclass"
                     |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
             let byClass =
@@ -29,6 +29,7 @@ type TestClass () =
                     |> Table.unionColumns byClass
             Table.ofColumns
                 [
+                    "Passenger class", byClass?Pclass
                     "Died (%)", round (byClass?Died / byClass?Total * 100.)
                     "Survived (%)", round (byClass?Survived / byClass?Total * 100.)
                 ]
