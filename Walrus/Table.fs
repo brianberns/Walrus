@@ -30,12 +30,15 @@ module Table =
      * Access
      *)
 
+    /// Gets the column with the given name from the given table.
     let getColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
         table.InternalRows
             |> Seq.map (InternalRow.getValue<'t> iCol)
             |> Column.create
 
+    /// Gets the column with the given name from the given table
+    /// with possibly missing values.
     let tryGetColumn<'t> columnName table =
         let iCol = table.ColumnMap[columnName]
         table.InternalRows
@@ -106,6 +109,7 @@ module Table =
             |> Seq.map InternalRow.create
             |> create columnNames
 
+    /// Creates a table from the given columns.
     let ofColumns columnPairs =
         let columnNames, columns = Seq.unzip columnPairs
         seq {
@@ -118,6 +122,7 @@ module Table =
                 Seq.map (Column.getValue iRow) columns
         } |> ofRows columnNames
 
+    /// Creates a table from the given column.
     let ofColumn columnName column =
         ofColumns [| columnName, column |]
 
@@ -134,6 +139,7 @@ module Table =
     let renameColumns columnNames table =
         create columnNames table.InternalRows
 
+    /// Creates a new table with all columns from the given tables.
     let unionColumns tableA tableB =
         let columnNames =
             Array.append tableA.ColumnNames tableB.ColumnNames
@@ -144,7 +150,10 @@ module Table =
                         |> InternalRow.create)
         create columnNames rows
 
-    /// Creates a pivot table.
+    /// Creates a pivot table, grouping on "rowCol", aggregating "dataCol"
+    /// values for each distinct "colCol" value. E.g. On the Titanic,
+    /// count # of passengers (dataCol) who survived/died (colCol) in each
+    /// passenger class (rowCol).
     let pivot<'t, 'u>
         rowColName
         colColName
