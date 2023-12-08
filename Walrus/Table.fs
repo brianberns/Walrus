@@ -217,6 +217,7 @@ module Table =
 
 type Table with
 
+    /// Gets a numeric column from the given table.
     static member (?) (table : Table, columnName) =
         Table.getColumn<obj> columnName table
             |> Column.map Convert.ToDouble
