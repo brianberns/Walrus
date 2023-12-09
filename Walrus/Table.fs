@@ -130,15 +130,14 @@ module Table =
 
     /// Creates a table from the given records.
     let ofRecords (records : seq<'t>) =
-        let fields =
-            FSharp.Reflection.FSharpType.GetRecordFields(typeof<'t>)
+        let properties = typeof<'t>.GetProperties()
         let columnNames =
-            fields |> Seq.map (fun field -> field.Name)
+            properties |> Seq.map (fun prop -> prop.Name)
         seq {
             for rcd in records do
                 seq {
-                    for field in fields do
-                        field.GetValue(rcd)
+                    for prop in properties do
+                        prop.GetValue(rcd)
                 }
         } |> ofRows columnNames
 
