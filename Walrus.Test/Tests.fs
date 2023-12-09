@@ -8,7 +8,7 @@ type Titanic() =
 
     /// https://fslab.org/Deedle/index.html
     [<TestMethod>]
-    member _.Survival() =
+    member _.SurvivalByClass() =
 
         let expected =
             [
@@ -37,7 +37,22 @@ type Titanic() =
         Assert.AreEqual<_>(expected, actual)
 
     [<TestMethod>]
-    member _.ByClassAndPort() =
+    member _.SurvivalBySex() =
+
+        let expected =
+            [
+                [ box "male"; 468; 109 ]
+                [ box "female"; 81; 233 ]
+            ] |> Table.ofRows [ "Sex"; "False"; "True" ]
+
+        let actual =
+            Table.loadCsv "titanic.csv"
+                |> Table.pivot "Sex" "Survived"
+
+        Assert.AreEqual<_>(expected, actual)
+
+    [<TestMethod>]
+    member _.AgeByClassAndPort() =
         let byClassAndPort =
             Table.loadCsv "titanic.csv"
                 |> Table.rowsWhere (
