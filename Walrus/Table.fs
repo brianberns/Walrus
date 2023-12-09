@@ -188,7 +188,7 @@ module Table =
     /// values for each distinct "colCol" value. E.g. On the Titanic,
     /// count # of passengers (dataCol) who survived/died (colCol) in each
     /// passenger class (rowCol).
-    let pivot<'t, 'u>
+    let pivotWith<'t, 'u>
         rowColName
         colColName
         dataColName
@@ -249,6 +249,20 @@ module Table =
                     } |> InternalRow.create)
                 |> Seq.toArray
         create colNames rows
+
+    /// Creates a pivot table, grouping on "rowCol", counting the number of
+    /// rows for each distinct "colCol" value. E.g. On the Titanic, count #
+    /// of passengers who survived/died (colCol) in each passenger class (rowCol).
+    let pivot<'t>
+        rowColName
+        colColName
+        table =
+            pivotWith<'t, int>
+                rowColName
+                colColName
+                rowColName
+                Seq.length
+                table
 
 type Table with
 

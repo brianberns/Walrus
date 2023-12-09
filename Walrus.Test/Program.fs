@@ -9,7 +9,7 @@ module Program =
 
         let byClass =
             Table.loadCsv "titanic.csv"
-                |> Table.pivot "Pclass" "Survived" "PassengerId" Seq.length<int option>
+                |> Table.pivot "Pclass" "Survived"
                 |> Table.sortRowsBy "Pclass"
                 |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
         let byClass =

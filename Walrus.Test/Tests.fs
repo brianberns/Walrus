@@ -20,7 +20,7 @@ type Titanic() =
         let actual =
             let byClass =
                 Table.loadCsv "titanic.csv"
-                    |> Table.pivot "Pclass" "Survived" "PassengerId" Seq.length<int option>
+                    |> Table.pivot "Pclass" "Survived"
                     |> Table.sortRowsBy "Pclass"
                     |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
             let byClass =
@@ -89,7 +89,7 @@ type People() =
                         yield [ person.Name; country ]
             }
                 |> Table.ofRows [ "Name"; "Country" ]
-                |> Table.pivot "Name" "Country" "Name" Seq.length
+                |> Table.pivot "Name" "Country"
         let joe =
             travels.Rows
                 |> Seq.find (Row.getValue "Name" >> (=) "Joe")
