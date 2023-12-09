@@ -8,7 +8,7 @@ type Titanic() =
 
     /// https://fslab.org/Deedle/index.html
     [<TestMethod>]
-    member _.Test() =
+    member _.Survival() =
 
         let expected =
             [
@@ -35,6 +35,18 @@ type Titanic() =
                 ]
 
         Assert.AreEqual<_>(expected, actual)
+
+    [<TestMethod>]
+    member _.ByClassAndPort() =
+        Table.loadCsv "titanic.csv"
+            |> Table.pivotWith "Pclass" "Embarked" "Age" (fun ageOpts ->
+                let ages =
+                    ageOpts
+                        |> Seq.choose id
+                        |> Seq.toArray
+                if ages.Length = 0 then 0.0
+                else Array.average ages |> round)
+            |> Table.print
 
 type Person = 
     { Name:string; Age:int; Countries:string list; }

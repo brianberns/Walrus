@@ -70,9 +70,12 @@ module internal Csv =
                     for iCol = 0 to nCols - 1 do
                         acc[iCol]
                             |> Set.filter (fun colType ->
-                                parserMap[colType] line[iCol]
-                                    |> isNull
-                                    |> not)
+                                let value = line[iCol]
+                                if String.IsNullOrEmpty(value) then true
+                                else
+                                    parserMap[colType] line[iCol]
+                                        |> isNull
+                                        |> not)
                 |])
             |> Seq.map (fun colTypes ->
                 colTypePriority
