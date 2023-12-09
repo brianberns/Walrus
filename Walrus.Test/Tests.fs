@@ -78,3 +78,15 @@ type People() =
                 |> Table.ofRecords
         let union = Table.unionRows people jimTable
         Assert.AreEqual<_>(5, Seq.length union.Rows)
+
+    /// More realistic than the Deedle example.
+    [<TestMethod>]
+    member _.Travels() =
+        seq {
+            for person in peopleRecds do
+                for country in person.Countries do
+                    yield [ person.Name; country ]
+        }
+            |> Table.ofRows [ "Name"; "Country" ]
+            |> Table.pivot "Name" "Country" "Name" Seq.length
+            |> Table.print

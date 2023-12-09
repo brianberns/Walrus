@@ -202,12 +202,12 @@ module Table =
             // find distinct row values
         let rowMapPairs =
             table.InternalRows
-                |> Seq.groupBy (InternalRow.tryGetValue iRowCol)
-                |> Seq.map (fun (rowVal, rows) ->
+                |> Seq.groupBy (InternalRow.getValue iRowCol)
+                |> Seq.map (fun (rowVal : obj, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
-                                InternalRow.tryGetValue iColCol row,
+                                InternalRow.getValue iColCol row,
                                 InternalRow.tryGetValue<'t> iDataCol row)
                             |> Seq.groupBy fst
                             |> Seq.map (fun (colVal, pairs) ->
@@ -239,7 +239,7 @@ module Table =
             rowMapPairs
                 |> Seq.map (fun (rowVal, colAggMap) ->
                     seq {
-                        Option.box rowVal
+                        rowVal
                         for colVal in colVals do
                             colAggMap
                                 |> Map.tryFind colVal
