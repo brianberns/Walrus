@@ -18,11 +18,15 @@ module internal InternalRow =
                     |> Seq.toArray
         }
 
-    /// Unboxed value of the given column in the given row.
+    /// Answers the value of the given row in the given column
+    /// as the given type. No conversion is attempted, and an
+    /// exception is thrown if the value is not of the given type.
     let getValue<'t> iCol row =
         unbox<'t> row.Values[iCol]
 
-    /// Unboxed value of the given column in the given row.
+    /// Answers the value of the given row in the given column
+    /// as the given type. No conversion is attempted, and an
+    /// None is returned if the value is not of the given type.
     let tryGetValue<'t> iCol row =
         let value = row.Values[iCol]
         if isNull value then None
