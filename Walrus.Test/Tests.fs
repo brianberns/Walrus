@@ -51,7 +51,6 @@ type People() =
 
     let people = Table.ofRecords peopleRecds
 
-    /// https://fslab.org/Deedle/index.html
     [<TestMethod>]
     member _.CountryCounts() =
 
@@ -71,3 +70,11 @@ type People() =
                     row.GetValue<List<string>>("Countries").Length)
                 |> Seq.toList
         Assert.AreEqual<_>(expected, actual)
+
+    [<TestMethod>]
+    member _.UnionRows() =
+        let jimTable =
+            [ { Name = "Jim"; Age = 51; Countries = ["US"] } ]
+                |> Table.ofRecords
+        let union = Table.unionRows people jimTable
+        Assert.AreEqual<_>(5, Seq.length union.Rows)

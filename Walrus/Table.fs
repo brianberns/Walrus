@@ -169,6 +169,21 @@ module Table =
                         |> InternalRow.create)
         create columnNames rows
 
+    /// Creates a new table with all rows from the given tables.
+    let unionRows tableA tableB =
+        seq {
+                // tableA's rows
+            yield! tableA.InternalRows
+
+                // tableB's rows
+            for row in tableB.InternalRows do
+                seq {
+                    for columnName in tableA.ColumnNames do
+                        let iCol = tableB.ColumnMap[columnName]
+                        row.Values[iCol]
+                } |> InternalRow.create
+        } |> create tableA.ColumnNames
+
     /// Creates a pivot table, grouping on "rowCol", aggregating "dataCol"
     /// values for each distinct "colCol" value. E.g. On the Titanic,
     /// count # of passengers (dataCol) who survived/died (colCol) in each
