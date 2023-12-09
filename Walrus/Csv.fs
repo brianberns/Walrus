@@ -103,10 +103,7 @@ module internal Csv =
             let lines =
                 [|
                     while reader.Read() do
-                        [|
-                            for iCol = 0 to reader.HeaderRecord.Length - 1 do
-                                yield reader[iCol]
-                        |]
+                        reader.Parser.Record
                 |]
 
             reader.HeaderRecord, lines
