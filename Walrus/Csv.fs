@@ -1,9 +1,10 @@
 ﻿namespace Walrus
 
 open System
+open System.Globalization
 open System.IO
 
-open CSVFile
+open CsvHelper
 
 module internal Option =
 
@@ -89,10 +90,26 @@ module internal Csv =
     let loadFile path =
 
         let headers, lines =
+
             use reader = new StreamReader(path : string)
-            use reader = new CSVReader(reader)
-            let lines = reader.Lines() |> Seq.toArray
-            reader.Headers, lines
+            use reader = new CsvReader(reader, CultureInfo.InvariantCulture)
+
+            let flag = reader.Read()
+            assert(flag)
+
+            let flag = reader.ReadHeader()
+            assert(flag)
+
+            let lines =
+                [|
+                    while reader.Read() do
+                        [|
+                            for iCol = 0 to reader.HeaderRecord.Length - 1 do
+                                yield reader[iCol]
+                        |]
+                |]
+
+            reader.HeaderRecord, lines
 
         let colTypes = inferTypes headers.Length lines
         let rows =
