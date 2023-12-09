@@ -39,17 +39,32 @@ type Titanic() =
     [<TestMethod>]
     member _.SurvivalBySex() =
 
-        let expected =
-            [
-                [ box "male"; 468; 109 ]
-                [ box "female"; 81; 233 ]
-            ] |> Table.ofRows [ "Sex"; "False"; "True" ]
+        do
+            let expected =
+                [
+                    [ box "male"; 468; 109 ]
+                    [ box "female"; 81; 233 ]
+                ] |> Table.ofRows [ "Sex"; "False"; "True" ]
 
-        let actual =
-            Table.loadCsv "titanic.csv"
-                |> Table.pivot "Sex" "Survived"
+            let actual =
+                Table.loadCsv "titanic.csv"
+                    |> Table.pivot "Sex" "Survived"
 
-        Assert.AreEqual<_>(expected, actual)
+            Assert.AreEqual<_>(expected, actual)
+
+        do
+            let expected =
+                [
+                    [ box "male"; 32.; 27. ]
+                    [ box "female"; 25.; 29. ]
+                ] |> Table.ofRows [ "Sex"; "False"; "True" ]
+
+            let actual =
+                Table.loadCsv "titanic.csv"
+                    |> Table.pivotWith "Sex" "Survived" "Age" (
+                        Seq.choose id >> Seq.average<float> >> round)
+
+            Assert.AreEqual<_>(expected, actual)
 
     [<TestMethod>]
     member _.AgeByClassAndPort() =
