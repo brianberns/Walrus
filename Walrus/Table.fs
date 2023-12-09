@@ -195,10 +195,11 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
-    /// Creates a pivot table, grouping on "rowCol", aggregating "dataCol"
-    /// values for each distinct "colCol" value. E.g. On the Titanic,
-    /// count # of passengers (dataCol) who survived/died (colCol) in each
-    /// passenger class (rowCol).
+    /// Creates a pivot table, grouping on a "row" column, aggregating
+    /// "data" column values for each distinct "column" column value.
+    /// E.g. On the Titanic, count # of passengers (data column) who
+    /// survived/died (column column) in each passenger class (row
+    /// column).
     let pivotWith<'t, 'u>
         rowColName
         colColName
@@ -262,9 +263,11 @@ module Table =
                 |> Seq.toArray
         create colNames rows
 
-    /// Creates a pivot table, grouping on "rowCol", counting the number of
-    /// rows for each distinct "colCol" value. E.g. On the Titanic, count #
-    /// of passengers who survived/died (colCol) in each passenger class (rowCol).
+    /// Creates a pivot table, grouping on a "row" column, countin the
+    /// number of rows for each distinct "column" column value.
+    /// E.g. On the Titanic, count # of passengers (data column) who
+    /// survived/died (column column) in each passenger class (row
+    /// column).
     let pivot<'t>
         rowColName
         colColName
