@@ -236,6 +236,7 @@ module Table =
                     string colVal
             |]
         let rows =
+            let noValue = aggregate Seq.empty
             rowMapPairs
                 |> Seq.map (fun (rowVal, colAggMap) ->
                     seq {
@@ -243,7 +244,8 @@ module Table =
                         for colVal in colVals do
                             colAggMap
                                 |> Map.tryFind colVal
-                                |> Option.box
+                                |> Option.defaultValue noValue
+                                |> box
                     } |> InternalRow.create)
                 |> Seq.toArray
         create colNames rows

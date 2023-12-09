@@ -82,11 +82,17 @@ type People() =
     /// More realistic than the Deedle example.
     [<TestMethod>]
     member _.Travels() =
-        seq {
-            for person in peopleRecds do
-                for country in person.Countries do
-                    yield [ person.Name; country ]
-        }
-            |> Table.ofRows [ "Name"; "Country" ]
-            |> Table.pivot "Name" "Country" "Name" Seq.length
-            |> Table.print
+        let travels =
+            seq {
+                for person in peopleRecds do
+                    for country in person.Countries do
+                        yield [ person.Name; country ]
+            }
+                |> Table.ofRows [ "Name"; "Country" ]
+                |> Table.pivot "Name" "Country" "Name" Seq.length
+        let joe =
+            travels.Rows
+                |> Seq.find (Row.getValue "Name" >> (=) "Joe")
+        Assert.AreEqual<_>(0, Row.getValue "CZ" joe)
+        Assert.AreEqual<_>(2, Row.getValue "UK" joe)
+        Assert.AreEqual<_>(1, Row.getValue "US" joe)
