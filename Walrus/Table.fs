@@ -145,6 +145,17 @@ module Table =
      * Manipulation
      *)
 
+    /// Answers a new table with rows filtered by the given predicate.
+    let rowsWhere predicate table =
+        {
+            table with
+                InternalRows =
+                    table.Rows
+                        |> Seq.where predicate
+                        |> Seq.map (fun row -> row.InternalRow)
+                        |> Seq.toArray
+        }
+
     /// Creates a new table with the rows ordered by the given
     /// column.
     let sortRowsBy<'t when 't : comparison> columnName table =
@@ -236,7 +247,7 @@ module Table =
                     string colVal
             |]
         let rows =
-            let noValue = aggregate Seq.empty
+            let noValue = lazy (aggregate Seq.empty)
             rowMapPairs
                 |> Seq.map (fun (rowVal, colAggMap) ->
                     seq {
@@ -244,7 +255,8 @@ module Table =
                         for colVal in colVals do
                             colAggMap
                                 |> Map.tryFind colVal
-                                |> Option.defaultValue noValue
+                                |> Option.defaultWith (fun () ->
+                                    noValue.Value)
                                 |> box
                     } |> InternalRow.create)
                 |> Seq.toArray

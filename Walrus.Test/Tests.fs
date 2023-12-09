@@ -38,15 +38,18 @@ type Titanic() =
 
     [<TestMethod>]
     member _.ByClassAndPort() =
-        Table.loadCsv "titanic.csv"
-            |> Table.pivotWith "Pclass" "Embarked" "Age" (fun ageOpts ->
-                let ages =
-                    ageOpts
-                        |> Seq.choose id
-                        |> Seq.toArray
-                if ages.Length = 0 then 0.0
-                else Array.average ages |> round)
-            |> Table.print
+        let byClassAndPort =
+            Table.loadCsv "titanic.csv"
+                |> Table.rowsWhere (
+                    Row.getValue<string> "Embarked" >> (<>) "")
+                |> Table.pivotWith "Pclass" "Embarked" "Age" (
+                    Seq.choose id >> Seq.average<float> >> round)
+        let row =
+            byClassAndPort.Rows
+                |> Seq.find (Row.getValue<int> "Pclass" >> (=) 3)
+        Assert.AreEqual<_>(21., Row.getValue<float> "C" row)
+        Assert.AreEqual<_>(26., Row.getValue<float> "Q" row)
+        Assert.AreEqual<_>(26., Row.getValue<float> "S" row)
 
 type Person = 
     { Name:string; Age:int; Countries:string list; }
