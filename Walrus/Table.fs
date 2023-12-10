@@ -214,6 +214,7 @@ module Table =
         (aggregate : seq<Option<'t>> -> 'u)
         table =
 
+            // get column indexes
         let iRowCols =
             rowColNames
                 |> Seq.map (fun rowColName ->
@@ -244,6 +245,7 @@ module Table =
                                 colVal, aggVal)
                             |> Map
                     rowVals, colAggMap)
+                |> Seq.toArray
 
             // find distinct column values
         let colVals =
@@ -262,9 +264,9 @@ module Table =
                     string colVal
             |]
         let rows =
-            let noValue = lazy (aggregate Seq.empty)
+            let noValue = lazy aggregate Seq.empty
             rowMapPairs
-                |> Seq.map (fun (rowVals, colAggMap) ->
+                |> Array.map (fun (rowVals, colAggMap) ->
                     seq {
                         yield! rowVals
                         for colVal in colVals do
@@ -274,7 +276,6 @@ module Table =
                                     noValue.Value)
                                 |> box
                     } |> InternalRow.create)
-                |> Seq.toArray
         create colNames rows
 
     /// Creates a pivot table, grouping on "row" columns, counting the
