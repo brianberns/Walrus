@@ -157,12 +157,19 @@ module Table =
         }
 
     /// Creates a new table with the rows ordered by the given
-    /// column.
-    let sortRowsBy<'t when 't : comparison> columnName table =
+    /// columns.
+    let sortRowsBy columnNames table =
         let rows =
-            let iCol = table.ColumnMap[columnName]
+            let iCols =
+                columnNames
+                    |> Seq.map (fun colName ->
+                        table.ColumnMap[colName])
+                    |> Seq.toList
             table.InternalRows
-                |> Array.sortBy (InternalRow.getValue<'t> iCol)
+                |> Array.sortBy (fun row ->
+                    iCols
+                        |> List.map (fun iCol ->
+                            InternalRow.getValue iCol row))
         { table with InternalRows = rows }
 
     /// Creates a new table with the given replacement column names.
@@ -201,21 +208,28 @@ module Table =
     /// survived/died (column column) in each passenger class (row
     /// column).
     let pivotWith<'t, 'u>
-        rowColName
+        rowColNames
         colColName
         dataColName
         (aggregate : seq<Option<'t>> -> 'u)
         table =
 
-        let iRowCol = table.ColumnMap[rowColName]
+        let iRowCols =
+            rowColNames
+                |> Seq.map (fun rowColName ->
+                    table.ColumnMap[rowColName])
+                |> Seq.toList
         let iColCol = table.ColumnMap[colColName]
         let iDataCol = table.ColumnMap[dataColName]
 
             // find distinct row values
         let rowMapPairs =
             table.InternalRows
-                |> Seq.groupBy (InternalRow.getValue iRowCol)
-                |> Seq.map (fun (rowVal : obj, rows) ->
+                |> Seq.groupBy (fun row ->
+                    iRowCols
+                        |> List.map (fun iRowCol ->
+                            InternalRow.getValue iRowCol row))
+                |> Seq.map (fun (rowVals, rows) ->
                     let colAggMap =
                         rows
                             |> Seq.map (fun row ->
@@ -229,7 +243,7 @@ module Table =
                                         |> aggregate
                                 colVal, aggVal)
                             |> Map
-                    rowVal, colAggMap)
+                    rowVals, colAggMap)
 
             // find distinct column values
         let colVals =
@@ -243,16 +257,16 @@ module Table =
             // create table
         let colNames =
             [|
-                rowColName
+                yield! rowColNames
                 for colVal in colVals do
                     string colVal
             |]
         let rows =
             let noValue = lazy (aggregate Seq.empty)
             rowMapPairs
-                |> Seq.map (fun (rowVal, colAggMap) ->
+                |> Seq.map (fun (rowVals, colAggMap) ->
                     seq {
-                        rowVal
+                        yield! rowVals
                         for colVal in colVals do
                             colAggMap
                                 |> Map.tryFind colVal
@@ -269,13 +283,13 @@ module Table =
     /// survived/died (column column) in each passenger class (row
     /// column).
     let pivot<'t>
-        rowColName
+        rowColNames
         colColName
         table =
             pivotWith<'t, int>
-                rowColName
+                rowColNames
                 colColName
-                rowColName
+                colColName
                 Seq.length
                 table
 

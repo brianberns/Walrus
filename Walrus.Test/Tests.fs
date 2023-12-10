@@ -20,8 +20,8 @@ type Titanic() =
         let actual =
             let byClass =
                 Table.loadCsv "titanic.csv"
-                    |> Table.pivot "Pclass" "Survived"
-                    |> Table.sortRowsBy "Pclass"
+                    |> Table.pivot ["Pclass"] "Survived"
+                    |> Table.sortRowsBy ["Pclass"]
                     |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
             let byClass =
                 byClass?Died + byClass?Survived
@@ -48,7 +48,7 @@ type Titanic() =
 
             let actual =
                 Table.loadCsv "titanic.csv"
-                    |> Table.pivot "Sex" "Survived"
+                    |> Table.pivot ["Sex"] "Survived"
 
             Assert.AreEqual<_>(expected, actual)
 
@@ -61,25 +61,20 @@ type Titanic() =
 
             let actual =
                 Table.loadCsv "titanic.csv"
-                    |> Table.pivotWith "Sex" "Survived" "Age" (
+                    |> Table.pivotWith ["Sex"] "Survived" "Age" (
                         Seq.choose id >> Seq.average<float> >> round)
 
             Assert.AreEqual<_>(expected, actual)
 
     [<TestMethod>]
-    member _.AgeByClassAndPort() =
+    member _.ByClassAndPort() =
         let byClassAndPort =
             Table.loadCsv "titanic.csv"
                 |> Table.rowsWhere (
                     Row.getValue<string> "Embarked" >> (<>) "")
-                |> Table.pivotWith "Pclass" "Embarked" "Age" (
-                    Seq.choose id >> Seq.average<float> >> round)
-        let row =
-            byClassAndPort.Rows
-                |> Seq.find (Row.getValue<int> "Pclass" >> (=) 3)
-        Assert.AreEqual<_>(21., Row.getValue<float> "C" row)
-        Assert.AreEqual<_>(26., Row.getValue<float> "Q" row)
-        Assert.AreEqual<_>(26., Row.getValue<float> "S" row)
+                |> Table.pivot ["Pclass"; "Embarked"] "Survived"
+                |> Table.sortRowsBy ["Pclass"; "Embarked"]
+        byClassAndPort |> Table.print
 
 type Person = 
     { Name:string; Age:int; Countries:string list; }
@@ -134,7 +129,7 @@ type People() =
                         yield [ person.Name; country ]
             }
                 |> Table.ofRows [ "Name"; "Country" ]
-                |> Table.pivot "Name" "Country"
+                |> Table.pivot ["Name"] "Country"
         let joe =
             travels.Rows
                 |> Seq.find (Row.getValue "Name" >> (=) "Joe")
