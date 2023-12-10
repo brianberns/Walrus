@@ -68,13 +68,27 @@ type Titanic() =
 
     [<TestMethod>]
     member _.ByClassAndPort() =
-        let byClassAndPort =
+
+        let expected =
+            [
+                [ box "C"; 1;  26; 59 ]
+                [ box "C"; 2;   8;  9 ]
+                [ box "C"; 3;  41; 25 ]
+                [ box "S"; 1;  53; 74 ]
+                [ box "S"; 2;  88; 76 ]
+                [ box "S"; 3; 286; 67 ]
+            ] |> Table.ofRows [ "Embarked"; "Pclass"; "False"; "True" ]
+
+        let actual =
             Table.loadCsv "titanic.csv"
-                |> Table.rowsWhere (
-                    Row.getValue<string> "Embarked" >> (<>) "")
-                |> Table.pivot ["Pclass"; "Embarked"] "Survived"
-                |> Table.sortRowsBy ["Pclass"; "Embarked"]
-        byClassAndPort |> Table.print
+                |> Table.rowsWhere (fun row ->
+                        match Row.getValue<string> "Embarked" row with
+                            | "C" | "S" -> true
+                            | _ -> false)
+                |> Table.pivot [ "Embarked"; "Pclass" ] "Survived"
+                |> Table.sortRowsBy [ "Embarked"; "Pclass" ]
+
+        Assert.AreEqual<_>(expected, actual)
 
 type Person = 
     { Name:string; Age:int; Countries:string list; }
