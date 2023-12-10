@@ -202,7 +202,7 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
-    /// Creates a pivot table, grouping on a "row" column, aggregating
+    /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
     /// E.g. On the Titanic, count # of passengers (data column) who
     /// survived/died (column column) in each passenger class (row
@@ -277,7 +277,7 @@ module Table =
                 |> Seq.toArray
         create colNames rows
 
-    /// Creates a pivot table, grouping on a "row" column, countin the
+    /// Creates a pivot table, grouping on "row" columns, counting the
     /// number of rows for each distinct "column" column value.
     /// E.g. On the Titanic, count # of passengers (data column) who
     /// survived/died (column column) in each passenger class (row
