@@ -215,7 +215,7 @@ module Table =
                         yield colName
             }
 
-            // rows or resulting table
+            // rows of resulting table
         let rows =
 
             let iColA = tableA.ColumnMap[columnNameA]
