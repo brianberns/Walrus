@@ -164,16 +164,16 @@ type Frame() =
                     else null
                 [ box i; box (1000 + i); valueB ])
                 |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
-
         let actual =
-
             let tableA =
                 Seq.init 10 (fun i -> [ i; 1000 + i ])
                     |> Table.ofRows [ "KeyA"; "ValueA" ]
             let tableB =
                 Seq.init 10 (fun i -> [ 2 * i; 2000 + 2 * i ])
                     |> Table.ofRows [ "KeyB"; "ValueB" ]
-
             Table.leftJoin (tableA, "KeyA") (tableB, "KeyB")
-
         Assert.AreEqual<_>(expected, actual)
+
+        let expected' = Table.tryGetColumn<int> "ValueB" expected
+        let actual' = Table.tryGetColumn<int> "ValueB" actual
+        Assert.AreEqual<_>(expected', actual')
