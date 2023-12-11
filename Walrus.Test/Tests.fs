@@ -150,3 +150,30 @@ type People() =
         Assert.AreEqual<_>(0, Row.getValue "CZ" joe)
         Assert.AreEqual<_>(2, Row.getValue "UK" joe)
         Assert.AreEqual<_>(1, Row.getValue "US" joe)
+
+[<TestClass>]
+type Frame() =
+
+    [<TestMethod>]
+    member _.LeftJoin() =
+
+        let expected =
+            Seq.init 10 (fun i ->
+                let valueB =
+                    if i % 2 = 0 then box (2000 + i)
+                    else null
+                [ box i; box (1000 + i); valueB ])
+                |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
+
+        let actual =
+
+            let tableA =
+                Seq.init 10 (fun i -> [ i; 1000 + i ])
+                    |> Table.ofRows [ "KeyA"; "ValueA" ]
+            let tableB =
+                Seq.init 10 (fun i -> [ 2 * i; 2000 + 2 * i ])
+                    |> Table.ofRows [ "KeyB"; "ValueB" ]
+
+            Table.leftJoin (tableA, "KeyA") (tableB, "KeyB")
+
+        Assert.AreEqual<_>(expected, actual)

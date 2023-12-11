@@ -202,6 +202,45 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
+    let leftJoin (tableA, columnNameA) (tableB, columnNameB) =
+
+        let columnNames =
+            seq {
+                yield! tableA.ColumnNames
+                for colName in tableB.ColumnNames do
+                    if colName <> columnNameB then
+                        yield colName
+            }
+
+        let rows =
+
+            let iColA = tableA.ColumnMap[columnNameA]
+            let iColB = tableB.ColumnMap[columnNameB]
+
+            let rowMap =
+                tableB.InternalRows
+                    |> Seq.map (fun row ->
+                        let value = InternalRow.getValue iColB row
+                        value, row)
+                    |> Map
+
+            seq {
+                for rowA in tableA.InternalRows do
+                    seq {
+                        yield! rowA.Values
+
+                        let value = InternalRow.getValue iColA rowA
+                        match Map.tryFind value rowMap with
+                            | Some rowB ->
+                                for iColB' = 0 to tableB.ColumnNames.Length - 1 do
+                                    if iColB' <> iColB then
+                                        yield InternalRow.getValue iColB' rowB
+                            | None -> yield! Seq.replicate (tableB.ColumnNames.Length - 1) null
+                    }
+            } |> Seq.map InternalRow.create
+
+        create columnNames rows
+
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
     /// E.g. On the Titanic, count # of passengers (data column) who
