@@ -202,8 +202,11 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
+    /// Creates a new table by left-joining the two given tables on
+    /// the two given columns.
     let leftJoin (tableA, columnNameA) (tableB, columnNameB) =
 
+            // column names of resulting table
         let columnNames =
             seq {
                 yield! tableA.ColumnNames
@@ -212,11 +215,13 @@ module Table =
                         yield colName
             }
 
+            // rows or resulting table
         let rows =
 
             let iColA = tableA.ColumnMap[columnNameA]
             let iColB = tableB.ColumnMap[columnNameB]
 
+                // prepare to lookup rows in right table
             let rowMap =
                 tableB.InternalRows
                     |> Seq.map (fun row ->
@@ -224,18 +229,22 @@ module Table =
                         value, row)
                     |> Map
 
+                // generate rows
             seq {
                 for rowA in tableA.InternalRows do
                     seq {
+                            // include all values from left table
                         yield! rowA.Values
 
+                            // try to find corresponding row from right table
                         let value = InternalRow.getValue iColA rowA
                         match Map.tryFind value rowMap with
                             | Some rowB ->
                                 for iColB' = 0 to tableB.ColumnNames.Length - 1 do
                                     if iColB' <> iColB then
                                         yield InternalRow.getValue iColB' rowB
-                            | None -> yield! Seq.replicate (tableB.ColumnNames.Length - 1) null
+                            | None ->
+                                yield! Seq.replicate (tableB.ColumnNames.Length - 1) null
                     }
             } |> Seq.map InternalRow.create
 
