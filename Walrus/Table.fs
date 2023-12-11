@@ -282,12 +282,14 @@ module Table =
     /// Creates a new table by left-joining the two given tables on the two
     /// given columns.
     let leftJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinForward JoinType.Left (tableA, columnNameA) (tableB, columnNameB)
+        joinForward JoinType.Left
+            (tableA, columnNameA) (tableB, columnNameB)
 
-    /// Creates a new table by left-joining the two given tables on the two
+    /// Creates a new table by inner-joining the two given tables on the two
     /// given columns.
     let innerJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinForward JoinType.Inner (tableA, columnNameA) (tableB, columnNameB)
+        joinForward JoinType.Inner
+            (tableA, columnNameA) (tableB, columnNameB)
 
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
