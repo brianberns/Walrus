@@ -152,7 +152,7 @@ type People() =
         Assert.AreEqual<_>(1, Row.getValue "US" joe)
 
 [<TestClass>]
-type Frame() =
+type Table() =
 
     [<TestMethod>]
     member _.LeftJoin() =
