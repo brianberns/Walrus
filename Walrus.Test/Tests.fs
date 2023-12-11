@@ -155,21 +155,49 @@ type People() =
 type Table() =
 
     [<TestMethod>]
-    member _.LeftJoin() =
-
+    member _.InnerJoin() =
+        let n = 10
         let expected =
-            Seq.init 10 (fun i ->
-                let valueB =
-                    if i % 2 = 0 then box (2000 + i)
-                    else null
-                [ box i; box (1000 + i); valueB ])
+            [ 0 .. 2 .. n ]
+                |> Seq.map (fun key ->
+                    [ box key; box (1000 + key); box (2000 + key) ])
                 |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
         let actual =
             let tableA =
-                Seq.init 10 (fun i -> [ i; 1000 + i ])
+                [ 0 .. n ]
+                    |> Seq.map (fun key -> [ key; 1000 + key ])
                     |> Table.ofRows [ "KeyA"; "ValueA" ]
             let tableB =
-                Seq.init 10 (fun i -> [ 2 * i; 2000 + 2 * i ])
+                [ 0 .. 2 .. 2 * n ]
+                    |> Seq.map (fun key -> [ key; 2000 + key ])
+                    |> Table.ofRows [ "KeyB"; "ValueB" ]
+            Table.innerJoin (tableA, "KeyA") (tableB, "KeyB")
+        Assert.AreEqual<_>(expected, actual)
+
+        let expected' = Table.getColumn<int> "ValueB" expected
+        let actual' = Table.getColumn<int> "ValueB" actual
+        Assert.AreEqual<_>(expected', actual')
+
+    [<TestMethod>]
+    member _.LeftJoin() =
+
+        let n = 10
+        let expected =
+            [ 0 .. n ]
+                |> Seq.map (fun key ->
+                    let valueB =
+                        if key % 2 = 0 then box (2000 + key)
+                        else null
+                    [ box key; box (1000 + key); valueB ])
+                |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
+        let actual =
+            let tableA =
+                [ 0 .. n ]
+                    |> Seq.map (fun key -> [ key; 1000 + key ])
+                    |> Table.ofRows [ "KeyA"; "ValueA" ]
+            let tableB =
+                [ 0 .. 2 .. 2 * n ]
+                    |> Seq.map (fun key -> [ key; 2000 + key ])
                     |> Table.ofRows [ "KeyB"; "ValueB" ]
             Table.leftJoin (tableA, "KeyA") (tableB, "KeyB")
         Assert.AreEqual<_>(expected, actual)
