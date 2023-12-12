@@ -212,6 +212,23 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
+    /// Drops the column with the given name from the given table.
+    let dropColumn columnName table =
+        let columnNames =
+            table.ColumnNames
+                |> Seq.where ((<>) columnName)
+        let rows =
+            let iCol = table.ColumnMap[columnName]
+            seq {
+                for row in table.InternalRows do
+                    seq {
+                        for iCol' = 0 to table.ColumnCount - 1 do
+                            if iCol' <> iCol then
+                                InternalRow.getValue iCol' row
+                    } |> InternalRow.create
+            }
+        create columnNames rows
+
     /// Ways of joining two tables.
     [<RequireQualifiedAccess>]
     type private JoinType =
