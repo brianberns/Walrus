@@ -29,6 +29,14 @@ type Table =
         table.InternalRows
             |> Seq.map (Row.create table.ColumnMap)
 
+/// Ways of joining two tables.
+[<RequireQualifiedAccess>]
+type JoinType =
+    | Inner
+    | Left
+    | Right
+    | Outer
+
 module Table =
 
     (*
@@ -212,34 +220,9 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
-    /// Drops the column with the given name from the given table.
-    let dropColumn columnName table =
-        let columnNames =
-            table.ColumnNames
-                |> Seq.where ((<>) columnName)
-        let rows =
-            let iCol = table.ColumnMap[columnName]
-            seq {
-                for row in table.InternalRows do
-                    seq {
-                        for iCol' = 0 to table.ColumnCount - 1 do
-                            if iCol' <> iCol then
-                                InternalRow.getValue iCol' row
-                    } |> InternalRow.create
-            }
-        create columnNames rows
-
-    /// Ways of joining two tables.
-    [<RequireQualifiedAccess>]
-    type private JoinType =
-        | Inner
-        | Left
-        | Right
-        | Outer
-
     /// Creates a new table by joining the two given tables on the two
     /// given columns.
-    let private joinImpl joinType (tableA, columnNameA) (tableB, columnNameB) =
+    let join joinType (tableA, columnNameA) (tableB, columnNameB) =
 
         let columnNames =
             Seq.append tableA.ColumnNames tableB.ColumnNames
@@ -301,27 +284,19 @@ module Table =
 
     /// Creates a new table by left-joining the two given tables on the two
     /// given columns.
-    let leftJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinImpl JoinType.Left
-            (tableA, columnNameA) (tableB, columnNameB)
+    let leftJoin = join JoinType.Left
 
     /// Creates a new table by inner-joining the two given tables on the two
     /// given columns.
-    let innerJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinImpl JoinType.Inner
-            (tableA, columnNameA) (tableB, columnNameB)
+    let innerJoin = join JoinType.Inner
 
     /// Creates a new table by right-joining the two given tables on the two
     /// given columns.
-    let rightJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinImpl JoinType.Right
-            (tableA, columnNameA) (tableB, columnNameB)
+    let rightJoin = join JoinType.Right
 
     /// Creates a new table by outer-joining the two given tables on the two
     /// given columns.
-    let outerJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinImpl JoinType.Outer
-            (tableA, columnNameA) (tableB, columnNameB)
+    let outerJoin = join JoinType.Outer
 
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
