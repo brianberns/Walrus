@@ -89,12 +89,11 @@ module internal Csv =
             |> Array.map (fun (colType, str) ->
                 parserMap[colType] str)
 
-    /// Loads the given CSV file.
-    let loadFile path =
+    /// Loads the given CSV.
+    let private loadReader (reader : TextReader) =
 
         let headers, lines =
 
-            use reader = new StreamReader(path : string)
             use reader = new CsvReader(reader, CultureInfo.InvariantCulture)
 
             let flag = reader.Read()
@@ -118,3 +117,13 @@ module internal Csv =
                     createRow colTypes line
             |]
         headers, rows
+
+    /// Loads the given CSV file.
+    let loadFile path =
+        use reader = new StreamReader(path : string)
+        loadReader reader
+
+    /// Loads the given CSV string.
+    let loadString string =
+        use reader = new StringReader(string)
+        loadReader reader

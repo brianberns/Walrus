@@ -142,8 +142,13 @@ module Table =
         ofColumns [| columnName, column |]
 
     /// Creates a table from the given CSV file.
-    let loadCsv path =
+    let loadCsvFile path =
         let columnNames, rowValues = Csv.loadFile path
+        ofRows columnNames rowValues
+
+    /// Creates a table from the given CSV string.
+    let loadCsvString string =
+        let columnNames, rowValues = Csv.loadString string
         ofRows columnNames rowValues
 
     /// Creates a table from the given records.
