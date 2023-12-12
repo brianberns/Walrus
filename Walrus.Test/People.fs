@@ -25,13 +25,13 @@ let ``Country counts`` () =
             |> Table.getColumn<List<string>> "Countries"
             |> Column.map List.length
             |> Column.values
-    Assert.Equal<seq<_>>(expected, actual)
+    Assert.Equal<int>(expected, actual)
 
     let actual =
         people.Rows
             |> Seq.map (fun row ->
                 row.GetValue<List<string>>("Countries").Length)
-    Assert.Equal<seq<_>>(expected, actual)
+    Assert.Equal<int>(expected, actual)
 
 [<Fact>]
 let ``Union rows`` () =
