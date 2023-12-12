@@ -17,11 +17,11 @@ type Table =
     }
 
     /// Number of columns in this table.
-    member table.NumColumns =
+    member table.ColumnCount =
         table.ColumnNames.Length
 
     /// Number of rows in this table.
-    member table.NumRows =
+    member table.RowCount =
         table.InternalRows.Length
 
     /// Rows in this table.
@@ -77,7 +77,7 @@ module Table =
         printfn " |"
 
         for row in table.InternalRows do
-            for iCol = 0 to table.NumColumns - 1 do
+            for iCol = 0 to table.ColumnCount - 1 do
                 let width = widths[iCol]
                 let strVal =
                     row
@@ -258,7 +258,7 @@ module Table =
                                 match joinType with
                                     | JoinType.Left
                                     | JoinType.Outer ->
-                                        Array.replicate tableB.NumColumns null
+                                        Array.replicate tableB.ColumnCount null
                                             |> Seq.singleton
                                     | JoinType.Inner
                                     | JoinType.Right -> Seq.empty
@@ -274,7 +274,7 @@ module Table =
                             let value = InternalRow.getValue iColB rowB
                             if Map.containsKey value rowMapA |> not then   // to-do: use a set of values instead of a map?
                                 let rowAValues =
-                                    Array.replicate tableA.NumColumns null
+                                    Array.replicate tableA.ColumnCount null
                                 yield createRow rowAValues rowB.Values
                     | JoinType.Inner
                     | JoinType.Left -> ()
