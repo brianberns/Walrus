@@ -230,15 +230,20 @@ module Table =
         let rows =
 
                 // prepare to lookup rows in each table
-            let iColA = tableA.ColumnMap[columnNameA]
-            let iColB = tableB.ColumnMap[columnNameB]
             let createMap table iCol =
                 table.InternalRows
                     |> Seq.groupBy (InternalRow.getValue iCol)
                     |> Seq.where (fst >> isNull >> not)   // don't join on missing value
                     |> Map
 
+            let createRow rowAValues rowBValues =
+                Seq.append rowAValues rowBValues
+                    |> InternalRow.create
+
             seq {
+                let iColA = tableA.ColumnMap[columnNameA]
+                let iColB = tableB.ColumnMap[columnNameB]
+
                     // create rows driven by left table
                 let rowMapB = createMap tableB iColB
                 for rowA in tableA.InternalRows do
@@ -256,8 +261,7 @@ module Table =
                                     | JoinType.Inner
                                     | JoinType.Right -> Seq.empty
                     for rowBValues in rowBValuesSeq do
-                        Seq.append rowA.Values rowBValues
-                            |> InternalRow.create
+                        yield createRow rowA.Values rowBValues
 
                     // create rows driven by right table
                 match joinType with
@@ -269,8 +273,7 @@ module Table =
                             if Map.containsKey value rowMapA |> not then
                                 let rowAValues =
                                     Array.replicate tableA.NumColumns null
-                                Seq.append rowAValues rowB.Values
-                                    |> InternalRow.create
+                                yield createRow rowAValues rowB.Values
                     | JoinType.Inner
                     | JoinType.Left -> ()
             }
@@ -297,7 +300,7 @@ module Table =
 
     /// Creates a new table by outer-joining the two given tables on the two
     /// given columns.
-    let outeJoin (tableA, columnNameA) (tableB, columnNameB) =
+    let outerJoin (tableA, columnNameA) (tableB, columnNameB) =
         joinImpl JoinType.Outer
             (tableA, columnNameA) (tableB, columnNameB)
 

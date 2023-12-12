@@ -137,3 +137,46 @@ let ``Right join`` () =
     let expected' = Table.tryGetColumn<int> "ValueB" expected
     let actual' = Table.tryGetColumn<int> "ValueB" actual
     Assert.Equal(expected', actual')
+
+(*
+ | KeyA | ValueA | KeyB | ValueB |
+ | ---- | ------ | ---- | ------ |
+ |    0 |   1000 |    0 |   2000 |
+ |    1 |   1001 |      |        |
+ |    2 |   1002 |    2 |   2002 |
+ |    3 |   1003 |      |        |
+ |    4 |   1004 |    4 |   2004 |
+ |    5 |   1005 |      |        |
+ |    6 |   1006 |    6 |   2006 |
+ |    7 |   1007 |      |        |
+ |    8 |   1008 |    8 |   2008 |
+ |    9 |   1009 |      |        |
+ |   10 |   1010 |   10 |   2010 |
+ |      |        |   12 |   2012 |
+ |      |        |   14 |   2014 |
+ |      |        |   16 |   2016 |
+ |      |        |   18 |   2018 |
+ |      |        |   20 |   2020 |
+ *)
+[<Fact>]
+let ``Outer join`` () =
+
+    let expected =
+        [ 0 .. 2 * n ]
+            |> Seq.choose (fun key ->
+                let keyA, valueA =
+                    if key <= n then box key, box (1000 + key)
+                    else null, null
+                let keyB, valueB =
+                    if key % 2 = 0 then box key, box (2000 + key)
+                    else null, null
+                if isNull keyA && isNull keyB then None
+                else Some [ keyA; valueA; keyB; valueB ])
+            |> Table.ofRows [ "KeyA"; "ValueA"; "KeyB"; "ValueB" ]
+    let actual =
+        Table.outerJoin (tableA, "KeyA") (tableB, "KeyB")
+    Assert.Equal(expected, actual)
+
+    let expected' = Table.tryGetColumn<int> "ValueB" expected
+    let actual' = Table.tryGetColumn<int> "ValueB" actual
+    Assert.Equal(expected', actual')
