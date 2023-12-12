@@ -217,84 +217,86 @@ module Table =
     type private JoinType =
         | Inner
         | Left
+        | Right
         | Outer
 
-    /// Answers row data created by joining the two given tables
-    /// on the two given columns.
+    /// Creates a new table by joining the two given tables on the two
+    /// given columns.
     let private joinImpl joinType (tableA, columnNameA) (tableB, columnNameB) =
 
+            // prepare to lookup rows in each table
         let iColA = tableA.ColumnMap[columnNameA]
         let iColB = tableB.ColumnMap[columnNameB]
-
-            // prepare to lookup rows in right table
-        let rowMap =
-            tableB.InternalRows
-                |> Seq.groupBy (InternalRow.getValue iColB)
+        let createMap table iCol =
+            table.InternalRows
+                |> Seq.groupBy (InternalRow.getValue iCol)
                 |> Seq.where (fst >> isNull >> not)   // don't join on missing value
                 |> Map
+        let rowMapA = lazy createMap tableA iColA
+        let rowMapB = lazy createMap tableB iColB
 
-            // determine row values
-        tableA.InternalRows
-            |> Seq.choose (fun rowA ->
-
-                    // try to find corresponding rows from right table
-                let value = InternalRow.getValue iColA rowA
-                match Map.tryFind value rowMap, joinType with
-                    | Some rowsB, _ ->
-                        let rowBValuesSeq =
-                            rowsB |> Seq.map (fun rowB -> rowB.Values)
-                        Some (rowA.Values, rowBValuesSeq)
-                    | None, JoinType.Left
-                    | None, JoinType.Outer ->
-                        let rowBValues =
-                            Array.replicate tableB.NumColumns null
-                                |> Seq.singleton
-                        Some (rowA.Values, rowBValues)
-                    | None, JoinType.Inner -> None)
-
-    /// Creates a new table by joining the two given tables on the two
-    /// given columns in the given order.
-    let private joinForward joinType (tableA, columnNameA) (tableB, columnNameB) =
         let columnNames =
             Seq.append tableA.ColumnNames tableB.ColumnNames
-        let rowPairs =
-            joinImpl joinType (tableA, columnNameA) (tableB, columnNameB)
+
         let rows =
-            rowPairs
-                |> Seq.collect (fun (rowAValues, rowBValuesArray) ->
-                    rowBValuesArray
-                        |> Seq.map (fun rowBValues ->
-                            Seq.append rowAValues rowBValues
-                                |> InternalRow.create))
+            seq {
+                for rowA in tableA.InternalRows do
+                    let value = InternalRow.getValue iColA rowA
+                    let rowBValuesSeq =
+                        match Map.tryFind value rowMapB.Value with
+                            | Some rowsB ->
+                                rowsB |> Seq.map (fun row -> row.Values)
+                            | None ->
+                                match joinType with
+                                    | JoinType.Left
+                                    | JoinType.Outer ->
+                                        Array.replicate tableB.NumColumns null
+                                            |> Seq.singleton
+                                    | JoinType.Inner
+                                    | JoinType.Right -> Seq.empty
+                    for rowBValues in rowBValuesSeq do
+                        Seq.append rowA.Values rowBValues
+                            |> InternalRow.create
+
+                match joinType with
+                    | JoinType.Right
+                    | JoinType.Outer ->
+                        for rowB in tableB.InternalRows do
+                            let value = InternalRow.getValue iColB rowB
+                            if Map.containsKey value rowMapA.Value |> not then
+                                let rowAValues =
+                                    Seq.replicate tableB.NumColumns null
+                                Seq.append rowAValues rowB.Values
+                                    |> InternalRow.create
+                    | JoinType.Inner
+                    | JoinType.Left -> ()
+            }
+
         create columnNames rows
 
     /// Creates a new table by left-joining the two given tables on the two
     /// given columns.
     let leftJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinForward JoinType.Left
+        joinImpl JoinType.Left
             (tableA, columnNameA) (tableB, columnNameB)
 
     /// Creates a new table by inner-joining the two given tables on the two
     /// given columns.
     let innerJoin (tableA, columnNameA) (tableB, columnNameB) =
-        joinForward JoinType.Inner
+        joinImpl JoinType.Inner
             (tableA, columnNameA) (tableB, columnNameB)
 
     /// Creates a new table by right-joining the two given tables on the two
     /// given columns.
     let rightJoin (tableA, columnNameA) (tableB, columnNameB) =
-        let columnNames =
-            Seq.append tableA.ColumnNames tableB.ColumnNames
-        let rowPairs =
-            joinImpl JoinType.Left (tableB, columnNameB) (tableA, columnNameA)
-        let rows =
-            rowPairs
-                |> Seq.collect (fun (rowBValues, rowAValuesArray) ->
-                    rowAValuesArray
-                        |> Seq.map (fun rowAValues ->
-                            Seq.append rowAValues rowBValues
-                                |> InternalRow.create))
-        create columnNames rows
+        joinImpl JoinType.Right
+            (tableA, columnNameA) (tableB, columnNameB)
+
+    /// Creates a new table by outer-joining the two given tables on the two
+    /// given columns.
+    let outeJoin (tableA, columnNameA) (tableB, columnNameB) =
+        joinImpl JoinType.Outer
+            (tableA, columnNameA) (tableB, columnNameB)
 
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
