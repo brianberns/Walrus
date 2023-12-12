@@ -224,26 +224,27 @@ module Table =
     /// given columns.
     let private joinImpl joinType (tableA, columnNameA) (tableB, columnNameB) =
 
-            // prepare to lookup rows in each table
-        let iColA = tableA.ColumnMap[columnNameA]
-        let iColB = tableB.ColumnMap[columnNameB]
-        let createMap table iCol =
-            table.InternalRows
-                |> Seq.groupBy (InternalRow.getValue iCol)
-                |> Seq.where (fst >> isNull >> not)   // don't join on missing value
-                |> Map
-        let rowMapA = lazy createMap tableA iColA
-        let rowMapB = lazy createMap tableB iColB
-
         let columnNames =
             Seq.append tableA.ColumnNames tableB.ColumnNames
 
         let rows =
+
+                // prepare to lookup rows in each table
+            let iColA = tableA.ColumnMap[columnNameA]
+            let iColB = tableB.ColumnMap[columnNameB]
+            let createMap table iCol =
+                table.InternalRows
+                    |> Seq.groupBy (InternalRow.getValue iCol)
+                    |> Seq.where (fst >> isNull >> not)   // don't join on missing value
+                    |> Map
+
             seq {
+                    // create rows driven by left table
+                let rowMapB = createMap tableB iColB
                 for rowA in tableA.InternalRows do
-                    let value = InternalRow.getValue iColA rowA
                     let rowBValuesSeq =
-                        match Map.tryFind value rowMapB.Value with
+                        let value = InternalRow.getValue iColA rowA
+                        match Map.tryFind value rowMapB with
                             | Some rowsB ->
                                 rowsB |> Seq.map (fun row -> row.Values)
                             | None ->
@@ -258,14 +259,16 @@ module Table =
                         Seq.append rowA.Values rowBValues
                             |> InternalRow.create
 
+                    // create rows driven by right table
                 match joinType with
                     | JoinType.Right
                     | JoinType.Outer ->
+                        let rowMapA = createMap tableA iColA
                         for rowB in tableB.InternalRows do
                             let value = InternalRow.getValue iColB rowB
-                            if Map.containsKey value rowMapA.Value |> not then
+                            if Map.containsKey value rowMapA |> not then
                                 let rowAValues =
-                                    Seq.replicate tableB.NumColumns null
+                                    Array.replicate tableA.NumColumns null
                                 Seq.append rowAValues rowB.Values
                                     |> InternalRow.create
                     | JoinType.Inner
