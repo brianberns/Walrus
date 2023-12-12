@@ -1,15 +1,14 @@
 namespace Walrus.Test
 
-open Microsoft.VisualStudio.TestTools.UnitTesting
+open Xunit
 open Walrus
 
-[<TestClass>]
-type Titanic() =
+module Titanic =
 
     /// https://fslab.org/Deedle/index.html
-    [<TestMethod>]
-    member _.SurvivalByClass() =
-
+    [<Fact>]
+    let ``Survival by class`` () =
+        
         let expected =
             [
                 [ 1.; 37.; 63. ]
@@ -34,10 +33,10 @@ type Titanic() =
                     "Survived (%)", round (byClass?Survived / byClass?Total * 100.)
                 ]
 
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal(expected, actual)
 
-    [<TestMethod>]
-    member _.SurvivalBySex() =
+    [<Fact>]
+    let ``Survival by sex`` () =
 
         do
             let expected =
@@ -50,7 +49,7 @@ type Titanic() =
                 Table.loadCsv "titanic.csv"
                     |> Table.pivot ["Sex"] "Survived"
 
-            Assert.AreEqual<_>(expected, actual)
+            Assert.Equal(expected, actual)
 
         do
             let expected =
@@ -64,10 +63,10 @@ type Titanic() =
                     |> Table.pivotWith ["Sex"] "Survived" "Age" (
                         Seq.choose id >> Seq.average<float> >> round)
 
-            Assert.AreEqual<_>(expected, actual)
+            Assert.Equal(expected, actual)
 
-    [<TestMethod>]
-    member _.ByClassAndPort() =
+    [<Fact>]
+    let ``Group by class and port`` () =
 
         let expected =
             [
@@ -88,14 +87,13 @@ type Titanic() =
                 |> Table.pivot [ "Embarked"; "Pclass" ] "Survived"
                 |> Table.sortRowsBy [ "Embarked"; "Pclass" ]
 
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal(expected, actual)
 
 type Person = 
     { Name:string; Age:int; Countries:string list; }
 
 /// https://fslab.org/Deedle/frame.html#Loading-F-records-or-NET-objects
-[<TestClass>]
-type People() =
+module People =
 
     let peopleRecds = 
       [ { Name = "Joe"; Age = 51; Countries = [ "UK"; "US"; "UK"] }
@@ -105,37 +103,35 @@ type People() =
 
     let people = Table.ofRecords peopleRecds
 
-    [<TestMethod>]
-    member _.CountryCounts() =
+    [<Fact>]
+    let ``Country counts`` () =
 
-        let expected = [3; 4; 1; 1]
+        let expected = [ 3; 4; 1; 1 ]
 
         let actual =
             people
                 |> Table.getColumn<List<string>> "Countries"
                 |> Column.map List.length
                 |> Column.values
-                |> Seq.toList
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal<seq<_>>(expected, actual)
 
         let actual =
             people.Rows
                 |> Seq.map (fun row ->
                     row.GetValue<List<string>>("Countries").Length)
-                |> Seq.toList
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal<seq<_>>(expected, actual)
 
-    [<TestMethod>]
-    member _.UnionRows() =
+    [<Fact>]
+    let ``Union rows`` () =
         let jimTable =
             [ { Name = "Jim"; Age = 51; Countries = ["US"] } ]
                 |> Table.ofRecords
         let union = Table.unionRows people jimTable
-        Assert.AreEqual<_>(5, Seq.length union.Rows)
+        Assert.Equal(5, Seq.length union.Rows)
 
     /// More realistic than the Deedle example.
-    [<TestMethod>]
-    member _.Travels() =
+    [<Fact>]
+    let Travels () =
         let travels =
             seq {
                 for person in peopleRecds do
@@ -147,15 +143,14 @@ type People() =
         let joe =
             travels.Rows
                 |> Seq.find (Row.getValue "Name" >> (=) "Joe")
-        Assert.AreEqual<_>(0, Row.getValue "CZ" joe)
-        Assert.AreEqual<_>(2, Row.getValue "UK" joe)
-        Assert.AreEqual<_>(1, Row.getValue "US" joe)
+        Assert.Equal(0, Row.getValue "CZ" joe)
+        Assert.Equal(2, Row.getValue "UK" joe)
+        Assert.Equal(1, Row.getValue "US" joe)
 
-[<TestClass>]
-type Table() =
+module Join =
 
-    [<TestMethod>]
-    member _.InnerJoin() =
+    [<Fact>]
+    let ``Inner join`` () =
         let n = 10
         let expected =
             [ 0 .. 2 .. n ]
@@ -172,14 +167,14 @@ type Table() =
                     |> Seq.map (fun key -> [ key; 2000 + key ])
                     |> Table.ofRows [ "KeyB"; "ValueB" ]
             Table.innerJoin (tableA, "KeyA") (tableB, "KeyB")
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal(expected, actual)
 
         let expected' = Table.getColumn<int> "ValueB" expected
         let actual' = Table.getColumn<int> "ValueB" actual
-        Assert.AreEqual<_>(expected', actual')
+        Assert.Equal(expected', actual')
 
-    [<TestMethod>]
-    member _.LeftJoin() =
+    [<Fact>]
+    let ``Left join`` () =
 
         let n = 10
         let expected =
@@ -200,8 +195,8 @@ type Table() =
                     |> Seq.map (fun key -> [ key; 2000 + key ])
                     |> Table.ofRows [ "KeyB"; "ValueB" ]
             Table.leftJoin (tableA, "KeyA") (tableB, "KeyB")
-        Assert.AreEqual<_>(expected, actual)
+        Assert.Equal(expected, actual)
 
         let expected' = Table.tryGetColumn<int> "ValueB" expected
         let actual' = Table.tryGetColumn<int> "ValueB" actual
-        Assert.AreEqual<_>(expected', actual')
+        Assert.Equal(expected', actual')
