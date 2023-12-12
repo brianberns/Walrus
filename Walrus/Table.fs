@@ -280,6 +280,22 @@ module Table =
         joinForward JoinType.Inner
             (tableA, columnNameA) (tableB, columnNameB)
 
+    /// Creates a new table by right-joining the two given tables on the two
+    /// given columns.
+    let rightJoin (tableA, columnNameA) (tableB, columnNameB) =
+        let columnNames =
+            Seq.append tableA.ColumnNames tableB.ColumnNames
+        let rowPairs =
+            joinImpl JoinType.Left (tableB, columnNameB) (tableA, columnNameA)
+        let rows =
+            rowPairs
+                |> Seq.collect (fun (rowBValues, rowAValuesArray) ->
+                    rowAValuesArray
+                        |> Seq.map (fun rowAValues ->
+                            Seq.append rowAValues rowBValues
+                                |> InternalRow.create))
+        create columnNames rows
+
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
     /// E.g. On the Titanic, count # of passengers (data column) who
