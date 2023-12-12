@@ -236,14 +236,16 @@ module Table =
                     |> Seq.where (fst >> isNull >> not)   // don't join on missing value
                     |> Map
 
+                // creates a row
             let createRow rowAValues rowBValues =
                 Seq.append rowAValues rowBValues
                     |> InternalRow.create
 
-            seq {
-                let iColA = tableA.ColumnMap[columnNameA]
-                let iColB = tableB.ColumnMap[columnNameB]
+                // join column indexes
+            let iColA = tableA.ColumnMap[columnNameA]
+            let iColB = tableB.ColumnMap[columnNameB]
 
+            seq {
                     // create rows driven by left table
                 let rowMapB = createMap tableB iColB
                 for rowA in tableA.InternalRows do
@@ -270,7 +272,7 @@ module Table =
                         let rowMapA = createMap tableA iColA
                         for rowB in tableB.InternalRows do
                             let value = InternalRow.getValue iColB rowB
-                            if Map.containsKey value rowMapA |> not then
+                            if Map.containsKey value rowMapA |> not then   // to-do: use a set of values instead of a map?
                                 let rowAValues =
                                     Array.replicate tableA.NumColumns null
                                 yield createRow rowAValues rowB.Values
