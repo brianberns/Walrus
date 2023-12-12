@@ -12,7 +12,9 @@
     <None Include="titanic.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <Compile Include="Tests.fs" />
+    <Compile Include="Titanic.fs" />
+    <Compile Include="People.fs" />
+    <Compile Include="Join.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
