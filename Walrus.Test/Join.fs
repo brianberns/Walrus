@@ -46,22 +46,22 @@ let tableB =
         |> Table.ofRows [ "KeyB"; "ValueB" ]
 
 (*
- | KeyA | ValueA | ValueB |
- | ---- | ------ | ------ |
- |    0 |   1000 |   2000 |
- |    2 |   1002 |   2002 |
- |    4 |   1004 |   2004 |
- |    6 |   1006 |   2006 |
- |    8 |   1008 |   2008 |
- |   10 |   1010 |   2010 |
+ | KeyA | ValueA | KeyB | ValueB |
+ | ---- | ------ | ---- | ------ |
+ |    0 |   1000 |    0 |   2000 |
+ |    2 |   1002 |    2 |   2002 |
+ |    4 |   1004 |    4 |   2004 |
+ |    6 |   1006 |    6 |   2006 |
+ |    8 |   1008 |    8 |   2008 |
+ |   10 |   1010 |   10 |   2010 |
  *)
 [<Fact>]
 let ``Inner join`` () =
     let expected =
         [ 0 .. 2 .. n ]
             |> Seq.map (fun key ->
-                [ box key; box (1000 + key); box (2000 + key) ])
-            |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
+                [ box key; box (1000 + key); key; box (2000 + key) ])
+            |> Table.ofRows [ "KeyA"; "ValueA"; "KeyB"; "ValueB" ]
     let actual =
         Table.innerJoin (tableA, "KeyA") (tableB, "KeyB")
     Assert.Equal(expected, actual)
@@ -71,19 +71,19 @@ let ``Inner join`` () =
     Assert.Equal(expected', actual')
 
 (*
- | KeyA | ValueA | ValueB |
- | ---- | ------ | ------ |
- |    0 |   1000 |   2000 |
- |    1 |   1001 |        |
- |    2 |   1002 |   2002 |
- |    3 |   1003 |        |
- |    4 |   1004 |   2004 |
- |    5 |   1005 |        |
- |    6 |   1006 |   2006 |
- |    7 |   1007 |        |
- |    8 |   1008 |   2008 |
- |    9 |   1009 |        |
- |   10 |   1010 |   2010 |
+ | KeyA | ValueA | KeyB | ValueB |
+ | ---- | ------ | ---- | ------ |
+ |    0 |   1000 |    0 |   2000 |
+ |    1 |   1001 |      |        |
+ |    2 |   1002 |    2 |   2002 |
+ |    3 |   1003 |      |        |
+ |    4 |   1004 |    4 |   2004 |
+ |    5 |   1005 |      |        |
+ |    6 |   1006 |    6 |   2006 |
+ |    7 |   1007 |      |        |
+ |    8 |   1008 |    8 |   2008 |
+ |    9 |   1009 |      |        |
+ |   10 |   1010 |   10 |   2010 |
  *)
 [<Fact>]
 let ``Left join`` () =
@@ -91,11 +91,11 @@ let ``Left join`` () =
     let expected =
         [ 0 .. n ]
             |> Seq.map (fun key ->
-                let valueB =
-                    if key % 2 = 0 then box (2000 + key)
-                    else null
-                [ box key; box (1000 + key); valueB ])
-            |> Table.ofRows [ "KeyA"; "ValueA"; "ValueB" ]
+                let keyB, valueB =
+                    if key % 2 = 0 then box key, box (2000 + key)
+                    else null, null
+                [ box key; box (1000 + key); keyB; valueB ])
+            |> Table.ofRows [ "KeyA"; "ValueA"; "KeyB"; "ValueB" ]
     let actual =
         Table.leftJoin (tableA, "KeyA") (tableB, "KeyB")
     Assert.Equal(expected, actual)

@@ -16,6 +16,14 @@ type Table =
         InternalRows : InternalRow[]
     }
 
+    /// Number of columns in this table.
+    member table.NumColumns =
+        table.ColumnNames.Length
+
+    /// Number of rows in this table.
+    member table.NumRows =
+        table.InternalRows.Length
+
     /// Rows in this table.
     member table.Rows =
         table.InternalRows
@@ -69,7 +77,7 @@ module Table =
         printfn " |"
 
         for row in table.InternalRows do
-            for iCol = 0 to table.ColumnNames.Length - 1 do
+            for iCol = 0 to table.NumColumns - 1 do
                 let width = widths[iCol]
                 let strVal =
                     row
@@ -88,7 +96,9 @@ module Table =
         let columnNames = Seq.toArray columnNames
         for (row : InternalRow) in rows do
             if row.Values.Length <> columnNames.Length then
-                failwith $"Invalid row length: {row.Values.Length}"
+                $"Row length ({row.Values.Length}) does not match number of columns ({columnNames.Length})"
+                    |> ArgumentException
+                    |> raise
 
         {
             ColumnNames = Seq.toArray columnNames
@@ -209,66 +219,45 @@ module Table =
         | Left
         | Outer
 
-    /// Creates a new table by joining the two given tables on
-    /// the two given columns.
+    /// Answers row data created by joining the two given tables
+    /// on the two given columns.
     let private joinImpl joinType (tableA, columnNameA) (tableB, columnNameB) =
 
-            // column names of resulting table
-        let columnNames =
-            seq {
-                yield! tableA.ColumnNames
-                for colName in tableB.ColumnNames do
-                    if colName <> columnNameB then
-                        yield colName
-            }
+        let iColA = tableA.ColumnMap[columnNameA]
+        let iColB = tableB.ColumnMap[columnNameB]
 
-            // row values of resulting table
-        let rowPairs =
+            // prepare to lookup rows in right table
+        let rowMap =
+            tableB.InternalRows
+                |> Seq.groupBy (InternalRow.getValue iColB)
+                |> Seq.where (fst >> isNull >> not)   // don't join on missing value
+                |> Map
 
-            let iColA = tableA.ColumnMap[columnNameA]
-            let iColB = tableB.ColumnMap[columnNameB]
+            // determine row values
+        tableA.InternalRows
+            |> Seq.choose (fun rowA ->
 
-                // prepare to lookup rows in right table
-            let rowMap =
-                tableB.InternalRows
-                    |> Seq.groupBy (InternalRow.getValue iColB)
-                    |> Seq.where (fst >> isNull >> not)   // don't join on missing value
-                    |> Map
-
-                // determine row values
-            tableA.InternalRows
-                |> Seq.choose (fun rowA ->
-
-                        // try to find corresponding rows from right table
-                    let value = InternalRow.getValue iColA rowA
-                    match Map.tryFind value rowMap, joinType with
-                        | Some rowsB, _ ->
-                            let rowBValuesSeq =
-                                seq {
-                                    for rowB in rowsB do
-                                        seq {
-                                            for iColB' = 0 to tableB.ColumnNames.Length - 1 do
-                                                if iColB' <> iColB then
-                                                    InternalRow.getValue<obj> iColB' rowB
-                                        }
-                                }
-                            Some (rowA.Values, rowBValuesSeq)
-                        | None, JoinType.Left
-                        | None, JoinType.Outer ->
-                            let rowBValues =
-                                Seq.replicate
-                                    (tableB.ColumnNames.Length - 1)
-                                    null
-                                    |> Seq.singleton
-                            Some (rowA.Values, rowBValues)
-                        | None, JoinType.Inner -> None)
-
-        columnNames, rowPairs
+                    // try to find corresponding rows from right table
+                let value = InternalRow.getValue iColA rowA
+                match Map.tryFind value rowMap, joinType with
+                    | Some rowsB, _ ->
+                        let rowBValuesSeq =
+                            rowsB |> Seq.map (fun rowB -> rowB.Values)
+                        Some (rowA.Values, rowBValuesSeq)
+                    | None, JoinType.Left
+                    | None, JoinType.Outer ->
+                        let rowBValues =
+                            Array.replicate tableB.NumColumns null
+                                |> Seq.singleton
+                        Some (rowA.Values, rowBValues)
+                    | None, JoinType.Inner -> None)
 
     /// Creates a new table by joining the two given tables on the two
     /// given columns in the given order.
     let private joinForward joinType (tableA, columnNameA) (tableB, columnNameB) =
-        let columnNames, rowPairs =
+        let columnNames =
+            Seq.append tableA.ColumnNames tableB.ColumnNames
+        let rowPairs =
             joinImpl joinType (tableA, columnNameA) (tableB, columnNameB)
         let rows =
             rowPairs
