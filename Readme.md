@@ -12,7 +12,7 @@ Here's Deedle's Titanic survivor analysis in Walrus:
 
 ```fsharp
 let byClass =
-    Table.loadCsv "titanic.csv"                // load Titanic data from a CSV file
+    Table.loadCsvFile "titanic.csv"            // load Titanic data from a CSV file
         |> Table.pivot ["Pclass"] "Survived"   // count the # of survivors in each passenger class
         |> Table.sortRowsBy ["Pclass"]         // sort the resulting pivot table's rows
         |> Table.renameColumns                 // give each column a meaningful name
