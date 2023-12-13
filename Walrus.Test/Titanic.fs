@@ -44,11 +44,9 @@ let ``Survival by sex`` () =
                 [ box "male"; 468; 109 ]
                 [ box "female"; 81; 233 ]
             ] |> Table.ofRows [ "Sex"; "False"; "True" ]
-
         let actual =
             titanic
                 |> Table.pivot ["Sex"] "Survived"
-
         Assert.Equal(expected, actual)
 
     do
@@ -57,12 +55,10 @@ let ``Survival by sex`` () =
                 [ box "male"; 32.; 27. ]
                 [ box "female"; 25.; 29. ]
             ] |> Table.ofRows [ "Sex"; "False"; "True" ]
-
         let actual =
             titanic
                 |> Table.pivotWith ["Sex"] "Survived" "Age" (
                     Seq.choose id >> Seq.average<float> >> round)
-
         Assert.Equal(expected, actual)
 
 [<Fact>]
