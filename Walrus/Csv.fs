@@ -93,21 +93,14 @@ module internal Csv =
     let private loadReader (reader : TextReader) =
 
         let headers, lines =
-
             use reader = new CsvReader(reader, CultureInfo.InvariantCulture)
-
-            let flag = reader.Read()
-            assert(flag)
-
-            let flag = reader.ReadHeader()
-            assert(flag)
-
+            let flag = reader.Read() in assert(flag)
+            let flag = reader.ReadHeader() in assert(flag)
             let lines =
                 [|
                     while reader.Read() do
                         reader.Parser.Record
                 |]
-
             reader.HeaderRecord, lines
 
         let colTypes = inferTypes headers.Length lines

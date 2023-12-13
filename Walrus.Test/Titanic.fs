@@ -3,6 +3,8 @@ module Titanic
 open Xunit
 open Walrus
 
+let titanic = Table.loadCsvFile "titanic.csv"
+
 /// https://fslab.org/Deedle/index.html
 [<Fact>]
 let ``Survival by class`` () =
@@ -16,7 +18,7 @@ let ``Survival by class`` () =
 
     let actual =
         let byClass =
-            Table.loadCsv "titanic.csv"
+            titanic
                 |> Table.pivot ["Pclass"] "Survived"
                 |> Table.sortRowsBy ["Pclass"]
                 |> Table.renameColumns [ "Pclass"; "Died"; "Survived" ]
@@ -44,7 +46,7 @@ let ``Survival by sex`` () =
             ] |> Table.ofRows [ "Sex"; "False"; "True" ]
 
         let actual =
-            Table.loadCsv "titanic.csv"
+            titanic
                 |> Table.pivot ["Sex"] "Survived"
 
         Assert.Equal(expected, actual)
@@ -57,7 +59,7 @@ let ``Survival by sex`` () =
             ] |> Table.ofRows [ "Sex"; "False"; "True" ]
 
         let actual =
-            Table.loadCsv "titanic.csv"
+            titanic
                 |> Table.pivotWith ["Sex"] "Survived" "Age" (
                     Seq.choose id >> Seq.average<float> >> round)
 
@@ -77,7 +79,7 @@ let ``Group by class and port`` () =
         ] |> Table.ofRows [ "Embarked"; "Pclass"; "False"; "True" ]
 
     let actual =
-        Table.loadCsv "titanic.csv"
+        titanic
             |> Table.rowsWhere (fun row ->
                     match Row.getValue<string> "Embarked" row with
                         | "C" | "S" -> true
