@@ -196,11 +196,10 @@ module Table =
         { table with InternalRows = rows }
 
     /// Maps the values of the given column.
-    let mapColumn curColumnName newColumnName (mapping : 't -> 'u) table =
-
-        let iMapCol = table.ColumnMap[curColumnName]
+    let mapColumn columnName (mapping : 't -> 'u) table =
         let rows =
-            seq {
+            let iMapCol = table.ColumnMap[columnName]
+            [|
                 for row in table.InternalRows do
                     seq {
                         for iCol = 0 to table.ColumnCount - 1 do
@@ -212,15 +211,8 @@ module Table =
                             else
                                 InternalRow.getValue<obj> iCol row
                     } |> InternalRow.create
-            }
-
-        let columnNames =
-            table.ColumnNames
-                |> Seq.mapi (fun iCol colName ->
-                    if iCol = iMapCol then newColumnName
-                    else colName)
-
-        create columnNames rows
+            |]
+        { table with InternalRows = rows }
 
     /// Creates a new table with the given replacement column names.
     let renameColumns columnNames table =
