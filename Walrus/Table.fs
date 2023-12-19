@@ -196,11 +196,11 @@ module Table =
         { table with InternalRows = rows }
 
     /// Maps the values of the given column.
-    let mapColumn columnName (mapping : 't -> 'u) table =
+    let mapColumn columnName mapping table =
         let rows =
             let iMapCol = table.ColumnMap[columnName]
-            [|
-                for row in table.InternalRows do
+            table.InternalRows
+                |> Array.map (fun row ->
                     seq {
                         for iCol = 0 to table.ColumnCount - 1 do
                             if iCol = iMapCol then
@@ -210,9 +210,29 @@ module Table =
                                     |> box
                             else
                                 InternalRow.getValue<obj> iCol row
-                    } |> InternalRow.create
-            |]
+                    } |> InternalRow.create)
         { table with InternalRows = rows }
+
+    /// Maps and folds the values of the given column.
+    let mapFoldColumn columnName folder state table =
+        let rows, state' =
+            let iMapCol = table.ColumnMap[columnName]
+            table.InternalRows
+                |> Array.mapFold (fun acc row ->
+                    let value, acc' =
+                        row
+                            |> InternalRow.getValue<'t> iMapCol
+                            |> folder acc
+                    let row =
+                        seq {
+                            for iCol = 0 to table.ColumnCount - 1 do
+                                if iCol = iMapCol then
+                                    box value
+                                else
+                                    InternalRow.getValue<obj> iCol row
+                        } |> InternalRow.create
+                    row, acc') state
+        { table with InternalRows = rows }, state'
 
     /// Creates a new table with the given replacement column names.
     let renameColumns columnNames table =
