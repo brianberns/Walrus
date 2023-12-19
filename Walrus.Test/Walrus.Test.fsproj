@@ -15,6 +15,7 @@
     <Compile Include="Titanic.fs" />
     <Compile Include="People.fs" />
     <Compile Include="Join.fs" />
+    <Compile Include="TimeSeries.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
