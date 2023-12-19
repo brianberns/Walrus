@@ -195,6 +195,35 @@ module Table =
                             InternalRow.getValue iCol row))
         { table with InternalRows = rows }
 
+    /// Maps the values of the given column.
+    let mapColumn curColumnName newColumnName (mapping : 't -> 'u) table =
+
+        let iMapCol = table.ColumnMap[curColumnName]
+        let rows =
+            seq {
+                for row in table.InternalRows do
+                    seq {
+                        for iCol = 0 to table.ColumnCount - 1 do
+                            if iCol = iMapCol then
+                                row
+                                    |> InternalRow.getValue<'t> iCol
+                                    |> mapping
+                                    |> box
+                            else
+                                InternalRow.getValue<obj> iCol row
+                    } |> InternalRow.create
+            }
+
+        let columnNames =
+            seq {
+                for iCol = 0 to table.ColumnCount - 1 do
+                    yield
+                        if iCol = iMapCol then newColumnName
+                        else table.ColumnNames[iCol]
+            }
+
+        create columnNames rows
+
     /// Creates a new table with the given replacement column names.
     let renameColumns columnNames table =
         create columnNames table.InternalRows

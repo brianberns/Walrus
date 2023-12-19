@@ -2,5 +2,6 @@ module Program
 
 open Walrus
 
-Table.rightJoin (Join.tableA, "KeyA") (Join.tableB, "KeyB")
+Join.tableA
+    |> Table.mapColumn "ValueA" "2x" (fun x -> x * 2)
     |> Table.print
