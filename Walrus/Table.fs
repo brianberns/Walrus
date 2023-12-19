@@ -215,12 +215,10 @@ module Table =
             }
 
         let columnNames =
-            seq {
-                for iCol = 0 to table.ColumnCount - 1 do
-                    yield
-                        if iCol = iMapCol then newColumnName
-                        else table.ColumnNames[iCol]
-            }
+            table.ColumnNames
+                |> Seq.mapi (fun iCol colName ->
+                    if iCol = iMapCol then newColumnName
+                    else colName)
 
         create columnNames rows
 
