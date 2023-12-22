@@ -11,16 +11,16 @@ A Walrus `Table` is a sequence of `Row`s that can be accessed by column name. It
 Here's Deedle's Titanic survivor analysis in Walrus:
 
 ```fsharp
-let byClass =
+let init =
     Table.loadCsvFile "titanic.csv"            // load Titanic data from a CSV file
         |> Table.pivot ["Pclass"] "Survived"   // count the # of survivors in each passenger class
         |> Table.sortRowsBy ["Pclass"]         // sort the resulting pivot table's rows
         |> Table.renameColumns                 // give each column a meaningful name
             [ "Pclass"; "Died"; "Survived" ]
 let byClass =                                  // add a column for the # of passengers in each class
-    byClass?Died + byClass?Survived
+    init?Died + init?Survived
         |> Table.ofColumn "Total"
-        |> Table.unionColumns byClass
+        |> Table.unionColumns init
 Table.ofColumns                                // compute percentages instead of raw counts
     [
         "Passenger class", byClass?Pclass
