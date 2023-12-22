@@ -13,6 +13,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Compile Include="Titanic.fs" />
+    <Compile Include="GroupBy.fs" />
     <Compile Include="People.fs" />
     <Compile Include="Join.fs" />
     <Compile Include="TimeSeries.fs" />

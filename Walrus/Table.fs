@@ -342,6 +342,45 @@ module Table =
     /// given columns.
     let outerJoin = join JoinType.Outer
 
+    /// Gets column indexes for the given column names.
+    let private getColumnIndexes colNames table =
+        colNames
+            |> Seq.map (fun rowColName ->
+                table.ColumnMap[rowColName])
+            |> Seq.toList
+
+    /// Groups the given table on the given "group" columns, aggregating
+    /// values in the given "agg" columns.
+    let groupBy<'t, 'u>
+        groupColNames
+        aggColNames
+        (aggregate : seq<Option<'t>> -> 'u)
+        table =
+
+        let columnNames = Seq.append groupColNames aggColNames
+
+        let rows =
+            let iGroupCols = getColumnIndexes groupColNames table
+            let iAggCols = getColumnIndexes aggColNames table
+            table.InternalRows
+                |> Seq.groupBy (fun row ->
+                    iGroupCols
+                        |> List.map (fun iGroupCol ->
+                            InternalRow.getValue iGroupCol row))
+                |> Seq.map (fun (rowVals, rows) ->
+                    let aggValues =
+                        seq {
+                            for iAggCol in iAggCols do
+                                seq {
+                                    for row in rows do
+                                        InternalRow.tryGetValue<'t> iAggCol row
+                                } |> aggregate |> box
+                        }
+                    Seq.append rowVals aggValues
+                        |> InternalRow.create)
+
+        create columnNames rows
+
     /// Creates a pivot table, grouping on "row" columns, aggregating
     /// "data" column values for each distinct "column" column value.
     /// E.g. On the Titanic, count # of passengers (data column) who
@@ -355,11 +394,7 @@ module Table =
         table =
 
             // get column indexes
-        let iRowCols =
-            rowColNames
-                |> Seq.map (fun rowColName ->
-                    table.ColumnMap[rowColName])
-                |> Seq.toList
+        let iRowCols = getColumnIndexes rowColNames table
         let iColCol = table.ColumnMap[colColName]
         let iDataCol = table.ColumnMap[dataColName]
 
