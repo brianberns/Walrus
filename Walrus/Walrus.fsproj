@@ -3,9 +3,25 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Authors>Brian Berns</Authors>
+    <Copyright>Brian Berns</Copyright>
+    <PackageLicenseFile>License</PackageLicenseFile>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/brianberns/Walrus</RepositoryUrl>
+    <Version>1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="Icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="License">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+	<None Include="..\README.md" Pack="true" PackagePath="\"/>
     <Compile Include="Prelude.fs" />
     <Compile Include="Row.fs" />
     <Compile Include="Column.fs" />
