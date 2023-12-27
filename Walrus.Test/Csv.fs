@@ -23,3 +23,10 @@ let ``Start time`` () =
     let actual = column.Values[0]
     Assert.Equal(expected, actual)
     Assert.Equal(None, column.Values[3])
+
+[<Fact>]
+let ``All day event`` () =
+    let column =
+        Table.getColumn<bool> "ALL DAY EVENT" events
+    Assert.False(column.Values[0])
+    Assert.True(column.Values[3])
