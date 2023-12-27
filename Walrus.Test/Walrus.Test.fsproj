@@ -9,6 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="CSV-file-for-example.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="titanic.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -17,6 +20,7 @@
     <Compile Include="People.fs" />
     <Compile Include="Join.fs" />
     <Compile Include="TimeSeries.fs" />
+    <Compile Include="Csv.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

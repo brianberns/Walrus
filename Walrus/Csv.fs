@@ -19,9 +19,12 @@ module internal Csv =
     /// Supported data types.
     type private ColumnType =
         | Boolean
+        | DateOnly
+        | DateTime
         | Float
         | Integer
         | String
+        | TimeOnly
 
     /// Parser for each supported data type.
     let private parserMap =
@@ -33,6 +36,14 @@ module internal Csv =
                 let parsed, value = Boolean.TryParse(str)
                 if parsed then Some value else None
 
+        let dateOnlyParser str =
+            let parsed, value = DateOnly.TryParse(str : string)
+            if parsed then Some value else None
+
+        let dateTimeParser str =
+            let parsed, value = DateTime.TryParse(str : string)
+            if parsed then Some value else None
+
         let floatParser str =
             let parsed, value = Double.TryParse(str : string)
             if parsed then Some value else None
@@ -41,11 +52,18 @@ module internal Csv =
             let parsed, value = Int32.TryParse(str : string)
             if parsed then Some value else None
 
+        let timeOnlyParser str =
+            let parsed, value = TimeOnly.TryParse(str : string)
+            if parsed then Some value else None
+
         Map [
             Boolean, boolParser >> Option.box
+            DateOnly, dateOnlyParser >> Option.box
+            DateTime, dateTimeParser >> Option.box
             Float, floatParser >> Option.box
             Integer, integerParser >> Option.box
             String, box
+            TimeOnly, timeOnlyParser >> Option.box
         ]
 
     /// Data type preferences. E.g. Prefer to parse "1" as a
@@ -55,6 +73,9 @@ module internal Csv =
             Boolean   // highest priority
             Integer
             Float
+            DateOnly
+            TimeOnly
+            DateTime
             String    // lowest priority
         |]
 
