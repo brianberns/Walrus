@@ -17,8 +17,11 @@ let ``Start date`` () =
 
 [<Fact>]
 let ``Start time`` () =
+
     let column =
         Table.tryGetColumn<TimeOnly> "EVENT START TIME" events
+
     let expected = TimeOnly.Parse("3:30pm") |> Some
     let actual = column.Values[0]
     Assert.Equal(expected, actual)
+    Assert.Equal(None, column.Values[3])
