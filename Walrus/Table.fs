@@ -349,9 +349,43 @@ module Table =
                 table.ColumnMap[rowColName])
             |> Seq.toList
 
+    /// Answers values of the given row at the given columns.
+    let private getValues iCols row =
+        iCols
+            |> List.map (fun iCol ->
+                InternalRow.getValue<obj> iCol row)
+
+    /// Groups the given table by the given columns, answering a subtable
+    /// for each group.
+    let groupBy colNames table =
+
+        let otherColNames =
+            let colNamesSet = set colNames
+            table.ColumnNames
+                |> Seq.where (fun colName ->
+                    colNamesSet.Contains(colName) |> not)
+
+        let groupings =
+            let iGroupCols = getColumnIndexes colNames table
+            table.InternalRows
+                |> Seq.groupBy (getValues iGroupCols)
+        let iOtherCols = getColumnIndexes otherColNames table
+        seq {
+            for key, rows in groupings do
+                let rows' =
+                    seq {
+                        for row in rows do
+                            seq {
+                                for iCol in iOtherCols do
+                                    InternalRow.getValue<obj> iCol row
+                            } |> InternalRow.create
+                    }
+                key, create otherColNames rows'
+        }
+
     /// Groups the given table on the given "group" columns, aggregating
     /// values in the given "agg" columns.
-    let groupBy<'t, 'u>
+    let aggregateBy<'t, 'u>
         groupColNames
         aggColNames
         (aggregate : seq<Option<'t>> -> 'u)
@@ -363,10 +397,7 @@ module Table =
             let iGroupCols = getColumnIndexes groupColNames table
             let iAggCols = getColumnIndexes aggColNames table
             table.InternalRows
-                |> Seq.groupBy (fun row ->
-                    iGroupCols
-                        |> List.map (fun iGroupCol ->
-                            InternalRow.getValue iGroupCol row))
+                |> Seq.groupBy (getValues iGroupCols)
                 |> Seq.map (fun (rowVals, rows) ->
                     let aggValues =
                         seq {
@@ -401,10 +432,7 @@ module Table =
             // find distinct row values
         let rowMapPairs =
             table.InternalRows
-                |> Seq.groupBy (fun row ->
-                    iRowCols
-                        |> List.map (fun iRowCol ->
-                            InternalRow.getValue iRowCol row))
+                |> Seq.groupBy (getValues iRowCols)
                 |> Seq.map (fun (rowVals, rows) ->
                     let colAggMap =
                         rows
