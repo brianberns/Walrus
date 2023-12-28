@@ -13,6 +13,14 @@ let input =
     ] |> Table.ofRows [ "A"; "B"; "C" ]
 
 [<Fact>]
+let ``TryGetValue`` () =
+    let row = Seq.head input.Rows
+    Assert.Throws<System.InvalidCastException>(fun () ->
+        row.TryGetValue<int> "A"
+            |> ignore)
+            |> ignore
+
+[<Fact>]
 let ``Group by`` () =
 
     let expected =
