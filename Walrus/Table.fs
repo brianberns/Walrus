@@ -358,30 +358,14 @@ module Table =
     /// Groups the given table by the given columns, answering a subtable
     /// for each group.
     let groupBy colNames table =
-
-        let otherColNames =
-            let colNamesSet = set colNames
-            table.ColumnNames
-                |> Seq.where (fun colName ->
-                    colNamesSet.Contains(colName) |> not)
-
-        let groupings =
-            let iGroupCols = getColumnIndexes colNames table
-            table.InternalRows
-                |> Seq.groupBy (getValues iGroupCols)
-        let iOtherCols = getColumnIndexes otherColNames table
-        seq {
-            for key, rows in groupings do
-                let rows' =
-                    seq {
-                        for row in rows do
-                            seq {
-                                for iCol in iOtherCols do
-                                    InternalRow.getValue<obj> iCol row
-                            } |> InternalRow.create
-                    }
-                key, create otherColNames rows'
-        }
+        let iGroupCols = getColumnIndexes colNames table
+        table.InternalRows
+            |> Seq.groupBy (getValues iGroupCols)
+            |> Seq.map (fun (key, rows) ->
+                let subtable =
+                    { table with
+                        InternalRows = Seq.toArray rows }
+                key, subtable)
 
     /// Groups the given table on the given "group" columns, aggregating
     /// values in the given "agg" columns.
