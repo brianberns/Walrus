@@ -28,9 +28,7 @@ module internal InternalRow =
     /// as the given type. No conversion is attempted, and an
     /// None is returned if the value is not of the given type.
     let tryGetValue<'t> iCol row =
-        let value = row.Values[iCol]
-        if isNull value then None
-        else unbox<'t> value |> Some
+        tryUnboxStrict<'t> row.Values[iCol]
 
 /// A row in a table.
 type Row =

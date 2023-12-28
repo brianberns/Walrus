@@ -20,3 +20,11 @@ module Seq =
     let unzip items =
         let cached = Seq.cache items
         Seq.map fst cached, Seq.map snd cached
+
+[<AutoOpen>]
+module Operators =
+
+    /// tryUnbox is too lenient if the value is of a different type.
+    let tryUnboxStrict<'t> value =
+        if isNull value then None
+        else unbox<'t> value |> Some

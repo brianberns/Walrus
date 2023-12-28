@@ -367,6 +367,44 @@ module Table =
                         InternalRows = Seq.toArray rows }
                 key, subtable)
 
+    /// Groups the given table by the given columns, answering a subtable
+    /// for each group.
+    let groupBy1<'t> colName table =
+        groupBy colName table
+            |> Seq.map (fun (values, subtable) ->
+                let key =
+                    match values with
+                        | [a] -> tryUnboxStrict<'t> a
+                        | _ -> failwith "Unexpected"
+                key, subtable)
+
+    /// Groups the given table by the given columns, answering a subtable
+    /// for each group.
+    let groupBy2<'t, 'u> colNameA colNameB table =
+        groupBy [colNameA; colNameB] table
+            |> Seq.map (fun (values, subtable) ->
+                let key =
+                    match values with
+                        | [a; b] ->
+                            tryUnboxStrict<'t> a,
+                            tryUnboxStrict<'u> b
+                        | _ -> failwith "Unexpected"
+                key, subtable)
+
+    /// Groups the given table by the given columns, answering a subtable
+    /// for each group.
+    let groupBy3<'t, 'u, 'v> colNameA colNameB colNameC table =
+        groupBy [colNameA; colNameB; colNameC] table
+            |> Seq.map (fun (values, subtable) ->
+                let key =
+                    match values with
+                        | [a; b; c] ->
+                            tryUnboxStrict<'t> a,
+                            tryUnboxStrict<'u> b,
+                            tryUnboxStrict<'v> c
+                        | _ -> failwith "Unexpected"
+                key, subtable)
+
     /// Groups the given table on the given "group" columns, aggregating
     /// values in the given "agg" columns.
     let aggregateBy<'t, 'u>
