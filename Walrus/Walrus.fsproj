@@ -5,6 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Authors>Brian Berns</Authors>
     <Copyright>Brian Berns</Copyright>
+    <Description>A lightweight F# library for working with tabular data</Description>
     <PackageLicenseFile>License</PackageLicenseFile>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
