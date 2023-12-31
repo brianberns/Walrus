@@ -90,3 +90,11 @@ let Slice () =
     Assert.Equal(4, titanic["Pclass" .. "Age"].ColumnCount)
     Assert.Equal(2, titanic["Cabin" .. ].ColumnCount)
     Assert.Equal(0, titanic["Embarked" .. "PassengerId"].ColumnCount)
+
+[<Fact>]
+let Distinct () =
+    let distinct =
+        titanic
+            |> Table.slice [ "Survived"; "Sex" ]
+            |> Table.distinct
+    Assert.Equal(4, distinct.RowCount)

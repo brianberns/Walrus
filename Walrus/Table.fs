@@ -39,65 +39,6 @@ type JoinType =
 
 module Table =
 
-    (*
-     * Access
-     *)
-
-    /// Gets the column with the given name from the given table.
-    let getColumn<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.InternalRows
-            |> Seq.map (InternalRow.getValue<'t> iCol)
-            |> Column.create
-
-    /// Gets the column with the given name from the given table
-    /// with possibly missing values.
-    let tryGetColumn<'t> columnName table =
-        let iCol = table.ColumnMap[columnName]
-        table.InternalRows
-            |> Seq.map (InternalRow.tryGetValue<'t> iCol)
-            |> Column.create
-
-    /// Prints the given table to the console.
-    let print table =
-
-        let widths =
-            [|
-                for colName in table.ColumnNames do
-                    let strs =
-                        seq {
-                            yield colName
-                            let col = getColumn colName table
-                            for value in col.Values do
-                                yield string value
-                        }
-                    strs
-                        |> Seq.map String.length
-                        |> Seq.max
-            |]
-
-        for colName, width in Array.zip table.ColumnNames widths do
-            printf " | %*s" width colName
-        printfn " |"
-
-        for _, width in Array.zip table.ColumnNames widths do
-            printf " | %*s" width (String('-', width))
-        printfn " |"
-
-        for row in table.InternalRows do
-            for iCol = 0 to table.ColumnCount - 1 do
-                let width = widths[iCol]
-                let strVal =
-                    row
-                        |> InternalRow.getValue<obj> iCol
-                        |> string
-                printf " | %*s" width strVal
-            printfn " |"
-
-    (*
-     * Creation
-     *)
-
     /// Creates a table from the given row values.
     let internal create columnNames rows =
 
@@ -164,9 +105,56 @@ module Table =
                 }
         } |> ofRows columnNames
 
-    (*
-     * Manipulation
-     *)
+    /// Gets the column with the given name from the given table.
+    let getColumn<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.InternalRows
+            |> Seq.map (InternalRow.getValue<'t> iCol)
+            |> Column.create
+
+    /// Gets the column with the given name from the given table
+    /// with possibly missing values.
+    let tryGetColumn<'t> columnName table =
+        let iCol = table.ColumnMap[columnName]
+        table.InternalRows
+            |> Seq.map (InternalRow.tryGetValue<'t> iCol)
+            |> Column.create
+
+    /// Prints the given table to the console.
+    let print table =
+
+        let widths =
+            [|
+                for colName in table.ColumnNames do
+                    let strs =
+                        seq {
+                            yield colName
+                            let col = getColumn colName table
+                            for value in col.Values do
+                                yield string value
+                        }
+                    strs
+                        |> Seq.map String.length
+                        |> Seq.max
+            |]
+
+        for colName, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width colName
+        printfn " |"
+
+        for _, width in Array.zip table.ColumnNames widths do
+            printf " | %*s" width (String('-', width))
+        printfn " |"
+
+        for row in table.InternalRows do
+            for iCol = 0 to table.ColumnCount - 1 do
+                let width = widths[iCol]
+                let strVal =
+                    row
+                        |> InternalRow.getValue<obj> iCol
+                        |> string
+                printf " | %*s" width strVal
+            printfn " |"
 
     /// Answers the indexes of the given columns within the given
     /// table.
@@ -198,6 +186,15 @@ module Table =
                         |> List.map (fun iCol ->
                             InternalRow.getValue iCol row))
         { table with InternalRows = rows }
+
+    /// Creates a table with distinct rows.
+    let distinct table =
+        {
+            table with
+                InternalRows =
+                    table.InternalRows
+                        |> Array.distinct
+        }
 
     /// Creates rows containing values from the given columns.
     let internal sliceRows colIndexes table =
