@@ -99,7 +99,7 @@ module Table =
      *)
 
     /// Creates a table from the given row values.
-    let private create columnNames rows =
+    let internal create columnNames rows =
 
         let columnNames = Seq.toArray columnNames
         for (row : InternalRow) in rows do
@@ -199,17 +199,21 @@ module Table =
                             InternalRow.getValue iCol row))
         { table with InternalRows = rows }
 
+    /// Creates rows containing values from the given columns.
+    let internal sliceRows colIndexes table =
+        seq {
+            for row in table.InternalRows do
+                seq {
+                    for iCol in colIndexes do
+                        row.Values[iCol]
+                } |> InternalRow.create
+        }
+
     /// Creates a table containing only the given columns.
     let slice columnNames table =
         let rows =
             let iCols = getColumnIndexes columnNames table
-            seq {
-                for row in table.InternalRows do
-                    seq {
-                        for iCol in iCols do
-                            row.Values[iCol]
-                    } |> InternalRow.create
-            }
+            sliceRows iCols table
         create columnNames rows
 
     /// Maps the values of the given column.
@@ -535,6 +539,20 @@ module Table =
 type Table with
 
     /// Gets a numeric column from the given table.
-    static member (?) (table : Table, columnName) =
+    static member (?)(table : Table, columnName) =
         Table.getColumn<obj> columnName table
             |> Column.map Convert.ToDouble
+
+    /// Creates a table containing a slice of columns.
+    member table.GetSlice(startColName, endColName) =
+        let iCols =
+            let iStartCol = table.ColumnMap[startColName]
+            let iEndCol = table.ColumnMap[endColName]
+            [| iStartCol .. iEndCol |]
+        let colNames =
+            iCols
+                |> Seq.map (fun iCol ->
+                    table.ColumnNames[iCol])
+        table
+            |> Table.sliceRows iCols
+            |> Table.create colNames
