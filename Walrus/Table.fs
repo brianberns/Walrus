@@ -168,7 +168,14 @@ module Table =
      * Manipulation
      *)
 
-    /// Answers a new table with rows filtered by the given predicate.
+    /// Answers the indexes of the given columns within the given
+    /// table.
+    let private getColumnIndexes columnNames table =
+        columnNames
+            |> Seq.map (fun colName ->
+                table.ColumnMap[colName])
+
+    /// Creates a table with rows filtered by the given predicate.
     let rowsWhere predicate table =
         {
             table with
@@ -179,14 +186,11 @@ module Table =
                         |> Seq.toArray
         }
 
-    /// Creates a new table with the rows ordered by the given
-    /// columns.
+    /// Creates a table with the rows ordered by the given columns.
     let sortRowsBy columnNames table =
         let rows =
             let iCols =
-                columnNames
-                    |> Seq.map (fun colName ->
-                        table.ColumnMap[colName])
+                getColumnIndexes columnNames table
                     |> Seq.toList
             table.InternalRows
                 |> Array.sortBy (fun row ->
@@ -194,6 +198,19 @@ module Table =
                         |> List.map (fun iCol ->
                             InternalRow.getValue iCol row))
         { table with InternalRows = rows }
+
+    /// Creates a table containing only the given columns.
+    let slice columnNames table =
+        let rows =
+            let iCols = getColumnIndexes columnNames table
+            seq {
+                for row in table.InternalRows do
+                    seq {
+                        for iCol in iCols do
+                            row.Values[iCol]
+                    } |> InternalRow.create
+            }
+        create columnNames rows
 
     /// Maps the values of the given column.
     let mapColumn columnName mapping table =
@@ -234,11 +251,11 @@ module Table =
                     row, acc') state
         { table with InternalRows = rows }, state'
 
-    /// Creates a new table with the given replacement column names.
+    /// Creates a table with the given replacement column names.
     let renameColumns columnNames table =
         create columnNames table.InternalRows
 
-    /// Creates a new table with all columns from the given tables.
+    /// Creates a table with all columns from the given tables.
     let unionColumns tableA tableB =
         let columnNames =
             Array.append tableA.ColumnNames tableB.ColumnNames
@@ -249,7 +266,7 @@ module Table =
                         |> InternalRow.create)
         create columnNames rows
 
-    /// Creates a new table with all rows from the given tables.
+    /// Creates a table with all rows from the given tables.
     let unionRows tableA tableB =
         seq {
                 // tableA's rows
@@ -264,7 +281,7 @@ module Table =
                 } |> InternalRow.create
         } |> create tableA.ColumnNames
 
-    /// Creates a new table by joining the two given tables on the two
+    /// Creates a table by joining the two given tables on the two
     /// given columns.
     let join joinType (tableA, columnNameA) (tableB, columnNameB) =
 
@@ -326,28 +343,21 @@ module Table =
 
         create columnNames rows
 
-    /// Creates a new table by left-joining the two given tables on the two
+    /// Creates a table by left-joining the two given tables on the two
     /// given columns.
     let leftJoin = join JoinType.Left
 
-    /// Creates a new table by inner-joining the two given tables on the two
+    /// Creates a table by inner-joining the two given tables on the two
     /// given columns.
     let innerJoin = join JoinType.Inner
 
-    /// Creates a new table by right-joining the two given tables on the two
+    /// Creates a table by right-joining the two given tables on the two
     /// given columns.
     let rightJoin = join JoinType.Right
 
-    /// Creates a new table by outer-joining the two given tables on the two
+    /// Creates a table by outer-joining the two given tables on the two
     /// given columns.
     let outerJoin = join JoinType.Outer
-
-    /// Gets column indexes for the given column names.
-    let private getColumnIndexes colNames table =
-        colNames
-            |> Seq.map (fun rowColName ->
-                table.ColumnMap[rowColName])
-            |> Seq.toList
 
     /// Answers values of the given row at the given columns.
     let private getValues iCols row =
@@ -358,7 +368,8 @@ module Table =
     /// Groups the given table by the given columns, answering a subtable
     /// for each group.
     let groupBy colNames table =
-        let iGroupCols = getColumnIndexes colNames table
+        let iGroupCols =
+            getColumnIndexes colNames table |> Seq.toList
         table.InternalRows
             |> Seq.groupBy (getValues iGroupCols)
             |> Seq.map (fun (key, rows) ->
@@ -416,7 +427,8 @@ module Table =
         let columnNames = Seq.append groupColNames aggColNames
 
         let rows =
-            let iGroupCols = getColumnIndexes groupColNames table
+            let iGroupCols =
+                getColumnIndexes groupColNames table |> Seq.toList
             let iAggCols = getColumnIndexes aggColNames table
             table.InternalRows
                 |> Seq.groupBy (getValues iGroupCols)
@@ -447,7 +459,8 @@ module Table =
         table =
 
             // get column indexes
-        let iRowCols = getColumnIndexes rowColNames table
+        let iRowCols =
+            getColumnIndexes rowColNames table |> Seq.toList
         let iColCol = table.ColumnMap[colColName]
         let iDataCol = table.ColumnMap[dataColName]
 
