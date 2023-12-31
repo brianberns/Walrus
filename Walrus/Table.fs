@@ -544,10 +544,16 @@ type Table with
             |> Column.map Convert.ToDouble
 
     /// Creates a table containing a slice of columns.
-    member table.GetSlice(startColName, endColName) =
+    member table.GetSlice(startColNameOpt, endColNameOpt) =
         let iCols =
-            let iStartCol = table.ColumnMap[startColName]
-            let iEndCol = table.ColumnMap[endColName]
+            let getColIdx iDefault colNameOpt =
+                colNameOpt
+                    |> Option.map (fun colName ->
+                        table.ColumnMap[colName])
+                    |> Option.defaultValue iDefault
+            let iStartCol = getColIdx 0 startColNameOpt
+            let iEndCol =
+                getColIdx (table.ColumnCount - 1) endColNameOpt
             [| iStartCol .. iEndCol |]
         let colNames =
             iCols
