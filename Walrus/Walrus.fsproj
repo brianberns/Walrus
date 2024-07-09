@@ -22,7 +22,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-	<None Include="..\README.md" Pack="true" PackagePath="\"/>
+	<None Include="..\README.md" Pack="true" PackagePath="\" />
     <Compile Include="Prelude.fs" />
     <Compile Include="Row.fs" />
     <Compile Include="Column.fs" />
@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="30.0.1" />
+    <PackageReference Include="CsvHelper" Version="33.0.1" />
   </ItemGroup>
 
 </Project>
