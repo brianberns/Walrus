@@ -541,21 +541,31 @@ type Table with
             |> Column.map Convert.ToDouble
 
     /// Creates a table containing a slice of columns.
-    member table.GetSlice(startColNameOpt, endColNameOpt) =
-        let iCols =
-            let getColIdx iDefault colNameOpt =
-                colNameOpt
-                    |> Option.map (fun colName ->
-                        table.ColumnMap[colName])
-                    |> Option.defaultValue iDefault
-            let iStartCol = getColIdx 0 startColNameOpt
-            let iEndCol =
-                getColIdx (table.ColumnCount - 1) endColNameOpt
-            [| iStartCol .. iEndCol |]
+    member private table.GetSlice(colIdxs) =
         let colNames =
-            iCols
+            colIdxs
                 |> Seq.map (fun iCol ->
                     table.ColumnNames[iCol])
         table
-            |> Table.sliceRows iCols
+            |> Table.sliceRows colIdxs
             |> Table.create colNames
+
+    /// Creates a table containing a slice of columns.
+    member table.GetSlice(startColIdxOpt, endColIdxOpt) =
+        let iStartCol =
+            Option.defaultValue 0 startColIdxOpt
+        let iEndCol =
+            Option.defaultValue (table.ColumnCount - 1) endColIdxOpt
+        table.GetSlice([| iStartCol .. iEndCol |])
+
+    /// Creates a table containing a slice of columns.
+    member table.GetSlice(startColNameOpt, endColNameOpt) =
+        let getColIdx iDefault colNameOpt =
+            colNameOpt
+                |> Option.map (fun colName ->
+                    table.ColumnMap[colName])
+                |> Option.defaultValue iDefault
+        let iStartCol = getColIdx 0 startColNameOpt
+        let iEndCol =
+            getColIdx (table.ColumnCount - 1) endColNameOpt
+        table.GetSlice([| iStartCol .. iEndCol |])
