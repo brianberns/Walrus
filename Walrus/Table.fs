@@ -7,7 +7,7 @@ type Table =
     private {
 
         /// Names of this table's columns, in order.
-        ColumnNames : string[]
+        ColumnNames_ : string[]
 
         /// Column indexes.
         ColumnMap : Map<string, int (*iCol*)>
@@ -18,7 +18,11 @@ type Table =
 
     /// Number of columns in this table.
     member table.ColumnCount =
-        table.ColumnNames.Length
+        table.ColumnNames_.Length
+
+        /// Names of this table's columns, in order.
+    member table.ColumnNames =
+        table.ColumnNames_
 
     /// Number of rows in this table.
     member table.RowCount =
@@ -50,7 +54,7 @@ module Table =
                     |> raise
 
         {
-            ColumnNames = Seq.toArray columnNames
+            ColumnNames_ = Seq.toArray columnNames
             ColumnMap =
                 columnNames
                     |> Seq.mapi (fun iCol colName ->
@@ -121,7 +125,7 @@ module Table =
             |> Column.create
 
     /// Prints the given table to the console.
-    let print table =
+    let print (table : Table) =
 
         let widths =
             [|
@@ -257,7 +261,7 @@ module Table =
         create columnNames table.InternalRows
 
     /// Creates a table with all columns from the given tables.
-    let unionColumns tableA tableB =
+    let unionColumns (tableA : Table) (tableB : Table) =
         let columnNames =
             Array.append tableA.ColumnNames tableB.ColumnNames
         let rows =
@@ -284,7 +288,9 @@ module Table =
 
     /// Creates a table by joining the two given tables on the two
     /// given columns.
-    let join joinType (tableA, columnNameA) (tableB, columnNameB) =
+    let join joinType
+        (tableA : Table, columnNameA)
+        (tableB : Table, columnNameB) =
 
         let columnNames =
             Seq.append tableA.ColumnNames tableB.ColumnNames
